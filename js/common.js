@@ -51,7 +51,52 @@ document.addEventListener("touchend", e => {
     lastTouchEnd = now;
 }, { passive: false });
 
-function confetti(durationMs = 1600) {
+const TotFS = (() => {
+    const el = document.documentElement;
+
+    function isFs() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    function enter() {
+        const req = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (req) req.call(el).catch?.(() => {});
+    }
+
+    function exit() {
+        const ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if (ex) ex.call(document).catch?.(() => {});
+    }
+
+    function toggle() { isFs() ? exit() : enter(); }
+
+    function injectExitButton() {
+        if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) return;
+        const btn = document.createElement("button");
+        btn.id = "fs-exit";
+        btn.textContent = "✕";
+        btn.setAttribute("aria-label", "Exit fullscreen");
+        btn.style.cssText = `position:fixed;top:max(10px, env(safe-area-inset-top));right:12px;z-index:999;width:46px;height:46px;border-radius:50%;
+            border:none;background:rgba(0,24,88,.45);color:#fff;font-size:20px;font-weight:800;display:none;place-items:center;
+            cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);`;
+        btn.addEventListener("click", exit);
+        document.body.appendChild(btn);
+
+        const sync = () => { btn.style.display = isFs() ? "grid" : "none"; };
+        document.addEventListener("fullscreenchange", sync);
+        document.addEventListener("webkitfullscreenchange", sync);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", injectExitButton);
+    } else {
+        injectExitButton();
+    }
+
+    return { enter, exit, toggle, isFs };
+})();
+
+function confetti(durationMs = 1800) {
     const canvas = document.createElement("canvas");
     canvas.id = "confetti";
     document.body.appendChild(canvas);
@@ -61,7 +106,7 @@ function confetti(durationMs = 1600) {
     canvas.height = innerHeight * dpr;
     ctx2d.scale(dpr, dpr);
     const colors = ["#e4572e", "#209ce7", "#17b978", "#a55eea", "#ff6b81", "#f9bc60"];
-    const pieces = Array.from({ length: 120 }, () => ({
+    const pieces = Array.from({ length: 160 }, () => ({
         x: Math.random() * innerWidth,
         y: -20 - Math.random() * innerHeight * 0.5,
         w: 8 + Math.random() * 8,
@@ -100,10 +145,9 @@ function bigMessage(text) {
 function createMatchGame(config) {
     const board = document.getElementById("board");
     const linesSvg = document.getElementById("lines");
-    const pairsCount = config.pairsPerRound || 3;
-    let leftItems = [];
-    let rightItems = [];
-    let selectedLeft = null;
+    const pairsCount = config.pairsPerRound || 5;
+    let selectedFrom = null;
+    let dragLine = null;
     let lockBoard = false;
     let matchesInRound = 0;
     let round = 0;
@@ -116,84 +160,109 @@ function createMatchGame(config) {
         return arr;
     }
 
-    function cellContent(item, side) {
-        return config.render ? config.render(item, side) : item.label;
+    function svgPoint(x, y) {
+        const pt = new DOMPoint(x, y);
+        const m = linesSvg.getScreenCTM();
+        return m ? pt.matrixTransform(m.inverse()) : pt;
     }
 
     function makeCell(item, side) {
         const div = document.createElement("div");
         div.className = "cell";
-        div.innerHTML = cellContent(item, side);
+        div.innerHTML = config.render ? config.render(item, side) : item.label;
         div.dataset.id = item.id;
-        div.addEventListener("pointerdown", () => onCellTap(div, item, side));
+
+        div.addEventListener("pointerdown", e => {
+            if (lockBoard || div.classList.contains("matched")) return;
+            TotAudio.pick();
+            selectedFrom = { div, item, side };
+            div.classList.add("selected");
+            dragLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            const p = svgPoint(e.clientX, e.clientY);
+            dragLine.setAttribute("x1", p.x);
+            dragLine.setAttribute("y1", p.y);
+            dragLine.setAttribute("x2", p.x);
+            dragLine.setAttribute("y2", p.y);
+            dragLine.setAttribute("class", "drag-line");
+            linesSvg.appendChild(dragLine);
+            try { div.setPointerCapture(e.pointerId); } catch {}
+            e.preventDefault();
+        });
+
+        div.addEventListener("pointermove", e => {
+            if (!dragLine || !selectedFrom) return;
+            const p = svgPoint(e.clientX, e.clientY);
+            dragLine.setAttribute("x2", p.x);
+            dragLine.setAttribute("y2", p.y);
+        });
+
+        div.addEventListener("pointerup", e => {
+            if (!selectedFrom) return;
+            dragLine?.remove();
+            dragLine = null;
+            const from = selectedFrom;
+            selectedFrom = null;
+            from.div.classList.remove("selected");
+
+            const target = document.elementFromPoint(e.clientX, e.clientY)?.closest(".cell");
+            lockBoard = true;
+            if (target && target !== from.div && !target.classList.contains("matched") &&
+                target.dataset.id === String(from.item.id)) {
+                finalizeMatch(from.div, target);
+            } else {
+                if (target && target !== from.div) target.classList.add("wrong");
+                else from.div.classList.add("wrong");
+                TotAudio.wrong();
+                setTimeout(() => {
+                    document.querySelectorAll(".cell.wrong").forEach(c => c.classList.remove("wrong"));
+                    lockBoard = false;
+                }, 420);
+            }
+        });
+
+        div.addEventListener("pointercancel", () => {
+            dragLine?.remove();
+            dragLine = null;
+            if (selectedFrom) {
+                selectedFrom.div.classList.remove("selected");
+                selectedFrom = null;
+            }
+        });
+
         return div;
     }
 
-    function drawLine(a, b) {
+    function finalizeMatch(a, b) {
         const ra = a.getBoundingClientRect();
         const rb = b.getBoundingClientRect();
-        const x1 = ra.right + 6, y1 = ra.top + ra.height / 2;
-        const x2 = rb.left - 6, y2 = rb.top + rb.height / 2;
-        const mid = (x1 + x2) / 2;
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);
-        path.setAttribute("stroke", "#17b978");
-        path.setAttribute("stroke-width", "7");
-        path.setAttribute("fill", "none");
-        path.setAttribute("stroke-linecap", "round");
-        linesSvg.appendChild(path);
-    }
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", ra.left + ra.width / 2);
+        line.setAttribute("y1", ra.top + ra.height / 2);
+        line.setAttribute("x2", rb.left + rb.width / 2);
+        line.setAttribute("y2", rb.top + rb.height / 2);
+        line.setAttribute("class", "match-line");
+        linesSvg.appendChild(line);
 
-    async function onCellTap(div, item, side) {
-        if (lockBoard) return;
-        TotAudio.tap();
-        if (side === "left") {
-            document.querySelectorAll(".cell.selected.left").forEach(c => c.classList.remove("selected"));
-            div.classList.add("selected", side);
-            selectedLeft = { div, item };
-            TotAudio.pick();
-            return;
-        }
-        if (!selectedLeft) return;
-        lockBoard = true;
-        if (item.id === selectedLeft.item.id) {
-            selectedLeft.div.classList.remove("selected");
-            selectedLeft.div.classList.add("matched");
-            div.classList.add("matched");
-            drawLine(selectedLeft.div, div);
-            TotAudio.match();
-            matchesInRound++;
-            selectedLeft = null;
-            lockBoard = false;
-            if (matchesInRound === pairsCount) roundWon();
-        } else {
-            TotAudio.wrong();
-            div.classList.add("wrong");
-            selectedLeft.div.classList.add("wrong");
-            setTimeout(() => {
-                div.classList.remove("wrong");
-                selectedLeft.div.classList.remove("wrong");
-                selectedLeft.div.classList.remove("selected");
-                selectedLeft = null;
-                lockBoard = false;
-            }, 450);
-        }
+        a.classList.add("matched");
+        b.classList.add("matched");
+        TotAudio.match();
+        matchesInRound++;
+        lockBoard = false;
+        if (matchesInRound === pairsCount) roundWon();
     }
 
     function roundWon() {
         lockBoard = true;
         TotAudio.win();
-        confetti(1800);
+        confetti(1900);
         bigMessage(config.praise ? config.praise[round % config.praise.length] : "Yay!");
         round++;
-        setTimeout(newRound, 2000);
+        setTimeout(newRound, 2100);
     }
 
     function newRound() {
         linesSvg.innerHTML = "";
         matchesInRound = 0;
-        leftItems = [];
-        rightItems = [];
         const chosen = shuffle([...config.pool]).slice(0, pairsCount);
         const colL = board.querySelector(".col-left");
         const colR = board.querySelector(".col-right");

@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#a18cd1">
     <title>Number Match</title>
     <link rel="stylesheet" href="../css/shared.css">
 </head>
 <body>
+<div class="bubbles" id="bubbles"></div>
+
 <div class="topbar">
     <a class="home-btn" href="../index.html">🏠</a>
     <div class="title">🔢 Number Match</div>
-    <button class="icon-btn" id="soundBtn">🔊</button>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
 </div>
 
 <main class="stage">
-    <div class="match-board" id="board">
+    <div class="match-board" id="board" style="--pairs:5">
         <div class="col col-left"></div>
         <div class="col col-right"></div>
     </div>
@@ -23,21 +29,22 @@
 <svg id="lines"></svg>
 <script src="../js/common.js"></script>
 <script>
-    const DOT_COLORS = ["#a55eea", "#209ce7", "#e4572e", "#ff6b81", "#f9bc60"];
+    const DOT_COLORS = ["#9b5de5", "#4d96ff", "#e4572e", "#f15bb5", "#ff9f1c", "#17b978"];
     createMatchGame({
-        pool: [1, 2, 3, 4, 5].map(n => ({ id: "n" + n, num: n })),
-        pairsPerRound: 3,
+        pool: [1, 2, 3, 4, 5, 6, 7].map(n => ({ id: "n" + n, num: n })),
+        pairsPerRound: 5,
         praise: ["Well done!", "Brilliant!", "Amazing!", "Perfect!"],
         render: (item, side) => {
             if (side === "left") return item.num;
             const c = DOT_COLORS[(item.num - 1) % DOT_COLORS.length];
             let dots = "";
             for (let i = 0; i < item.num; i++) dots += `<span style="background:${c}"></span>`;
-            let cols = item.num <= 2 ? item.num : Math.ceil(item.num / 2);
+            const cols = item.num <= 3 ? item.num : Math.ceil(item.num / Math.ceil(item.num / 3));
             return `<div class="dots" style="grid-template-columns:repeat(${cols}, auto)">${dots}</div>`;
         }
     });
 </script>
 <script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
 </body>
 </html>

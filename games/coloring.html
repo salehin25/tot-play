@@ -3,64 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#a18cd1">
     <title>Coloring Fun</title>
     <link rel="stylesheet" href="../css/shared.css">
     <style>
-        .canvas-card {
-            background: var(--card);
-            border-radius: 26px;
-            box-shadow: var(--shadow);
+        .canvas-wrap {
+            flex: 1;
+            min-height: 0;
             width: 100%;
-            max-width: 640px;
             display: grid;
             place-items: center;
-            padding: 10px;
         }
 
-        .canvas-card svg { width: 100%; height: auto; touch-action: manipulation; }
+        #paint {
+            max-width: 96%;
+            max-height: 96%;
+            border-radius: 24px;
+            background: #fff;
+            box-shadow: 0 14px 0 rgba(36, 49, 94, 0.16), 0 20px 40px rgba(36, 49, 94, 0.18);
+            touch-action: none;
+        }
 
-        .fill-region { cursor: pointer; transition: fill 0.15s; }
+        .toolbar {
+            display: flex;
+            gap: clamp(8px, 1.4dvh, 14px);
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+        }
+
+        .tool, .nav-btn {
+            width: clamp(48px, 8.5dvh, 74px);
+            height: clamp(48px, 8.5dvh, 74px);
+            border-radius: 18px;
+            border: none;
+            background: var(--card);
+            box-shadow: var(--shadow);
+            font-size: clamp(22px, 3.6dvh, 34px);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .tool.active {
+            background: linear-gradient(160deg, #ffd166, #ff9f1c);
+            outline: 5px solid #fff;
+        }
+
+        .tool:active, .nav-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(36, 49, 94, 0.16); }
+
+        .pic-name {
+            position: absolute;
+            top: calc(max(10px, env(safe-area-inset-top)) + clamp(52px, 9dvh, 80px));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.85);
+            padding: 4px 18px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: clamp(0.85rem, 2.2dvh, 1.15rem);
+            z-index: 10;
+            color: var(--ink);
+        }
 
         .palette {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
+            gap: clamp(8px, 1.4dvh, 14px);
+            flex-wrap: nowrap;
         }
 
         .swatch {
-            width: 58px;
-            height: 58px;
+            width: clamp(40px, 7dvh, 62px);
+            height: clamp(40px, 7dvh, 62px);
             border-radius: 50%;
-            border: 6px solid #fff;
+            border: 5px solid #fff;
             box-shadow: var(--shadow);
             cursor: pointer;
-            transition: transform 0.12s, outline 0.1s;
+            transition: transform 0.12s, outline-color 0.1s;
             outline: 4px solid transparent;
         }
 
         .swatch.selected {
-            transform: scale(1.18);
+            transform: scale(1.16);
             outline-color: var(--ink);
         }
+
+        main.stage { max-width: 1100px; }
     </style>
 </head>
 <body>
+<div class="bubbles" id="bubbles"></div>
+
 <div class="topbar">
     <a class="home-btn" href="../index.html">🏠</a>
     <div class="title">🎨 Coloring Fun</div>
-    <button class="icon-btn" id="soundBtn">🔊</button>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
 </div>
 
+<span class="pic-name" id="picName">Fish</span>
+
 <main class="stage">
-    <div class="canvas-card">
-        <svg id="art" viewBox="0 0 400 320"></svg>
+    <div class="canvas-wrap">
+        <canvas id="paint" aria-label="coloring canvas"></canvas>
     </div>
     <div class="palette" id="palette"></div>
-    <div style="display:flex; gap:14px;">
-        <button class="btn-big" id="prevBtn">⬅️</button>
-        <button class="btn-big" id="clearBtn">🧽</button>
-        <button class="btn-big" id="nextBtn">➡️</button>
+    <div class="toolbar">
+        <button class="nav-btn" id="prevBtn">⬅️</button>
+        <button class="tool" id="toolFill">🪣</button>
+        <button class="tool" id="toolBrush">🖌️</button>
+        <button class="tool" id="undoBtn">↩️</button>
+        <button class="tool" id="clearBtn">🧽</button>
+        <button class="nav-btn" id="nextBtn">➡️</button>
     </div>
 </main>
 
@@ -68,5 +125,6 @@
 <script src="../js/coloring-data.js"></script>
 <script src="../js/coloring.js"></script>
 <script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
 </body>
 </html>

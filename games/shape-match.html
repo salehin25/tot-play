@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#a18cd1">
     <title>Shape Match</title>
     <link rel="stylesheet" href="../css/shared.css">
 </head>
 <body>
+<div class="bubbles" id="bubbles"></div>
+
 <div class="topbar">
     <a class="home-btn" href="../index.html">🏠</a>
     <div class="title">⭐ Shape Match</div>
-    <button class="icon-btn" id="soundBtn">🔊</button>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
 </div>
 
 <main class="stage">
-    <div class="match-board" id="board">
+    <div class="match-board" id="board" style="--pairs:5">
         <div class="col col-left"></div>
         <div class="col col-right"></div>
     </div>
@@ -29,15 +35,17 @@
             { id: "square", emoji: "🟦", label: "Square" },
             { id: "triangle", emoji: "🔺", label: "Triangle" },
             { id: "star", emoji: "⭐", label: "Star" },
-            { id: "heart", emoji: "💚", label: "Heart" }
+            { id: "heart", emoji: "💗", label: "Heart" },
+            { id: "moon", emoji: "🌙", label: "Moon" }
         ],
-        pairsPerRound: 3,
+        pairsPerRound: 5,
         praise: ["Fantastic!", "You rock!", "Woohoo!", "Clever kid!"],
         render: (item, side) => side === "right"
-            ? `<span style="filter:grayscale(1) brightness(0.45)">${item.emoji}</span>`
+            ? `<span style="filter:grayscale(1) brightness(0.4)">${item.emoji}</span>`
             : item.emoji
     });
 </script>
 <script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
 </body>
 </html>

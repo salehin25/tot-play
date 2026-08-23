@@ -3,75 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#fef6e4">
+    <meta name="theme-color" content="#a18cd1">
     <title>Tot Play</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/shared.css">
     <style>
-        .menu {
+        .corner-controls {
+            position: fixed;
+            top: max(10px, env(safe-area-inset-top));
+            right: 14px;
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        header {
+            text-align: center;
+            padding-top: max(18px, env(safe-area-inset-top));
+            z-index: 5;
+        }
+
+        .logo {
+            font-size: clamp(2.4rem, 9dvh, 4.6rem);
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 4px 0 rgba(36, 49, 94, 0.3);
+        }
+
+        .logo span { display: inline-block; animation: bounce 1.6s ease infinite; }
+        .logo span:nth-child(2n) { animation-delay: 0.15s; }
+        .logo span:nth-child(3n) { animation-delay: 0.3s; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-12px); }
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 700;
+            margin-top: 4px;
+            font-size: clamp(1rem, 3dvh, 1.5rem);
+            text-shadow: 0 2px 0 rgba(36, 49, 94, 0.25);
+        }
+
+        main.menu {
+            width: min(92vw, 780px);
+            flex: 1;
+            min-height: 0;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            width: 100%;
-            max-width: 560px;
+            grid-template-rows: repeat(2, 1fr);
+            gap: clamp(14px, 3dvh, 30px);
+            padding: max(12px, env(safe-area-inset-top)) 16px calc(max(16px, env(safe-area-inset-bottom)) + 8px);
+            z-index: 5;
         }
 
         .tile {
-            aspect-ratio: 1;
-            border-radius: 28px;
+            border-radius: 32px;
             border: none;
             box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 1.2dvh;
             font-family: inherit;
-            font-size: clamp(1rem, 4vw, 1.3rem);
+            font-size: clamp(1.3rem, 3.6dvh, 2.1rem);
             font-weight: 800;
             color: #fff;
-            text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+            text-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
             cursor: pointer;
             transition: transform 0.12s;
             text-decoration: none;
         }
 
-        .tile:active { transform: scale(0.94); }
+        .tile:active { transform: scale(0.93); }
 
-        .tile .emoji { font-size: clamp(3rem, 13vw, 4.6rem); filter: drop-shadow(0 3px 0 rgba(0,0,0,0.15)); }
-
-        .t-color { background: linear-gradient(160deg, #ff8fa3, #e4572e); }
-        .t-abc { background: linear-gradient(160deg, #6fc3ff, #209ce7); }
-        .t-num { background: linear-gradient(160deg, #7be3b1, #17b978); }
-        .t-shape { background: linear-gradient(160deg, #d0a9ff, #a55eea); }
-
-        .logo { font-size: clamp(2.2rem, 9vw, 3.4rem); margin: 10px 0 2px; }
-
-        .logo span { display: inline-block; animation: bounce 1.6s ease infinite; }
-        .logo span:nth-child(2) { animation-delay: 0.15s; }
-        .logo span:nth-child(3) { animation-delay: 0.3s; }
-        .logo span:nth-child(4) { animation-delay: 0.45s; }
-        .logo span:nth-child(5) { animation-delay: 0.6s; }
-        .logo span:nth-child(6) { animation-delay: 0.75s; }
-        .logo span:nth-child(7) { animation-delay: 0.9s; }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
+        .tile .emoji {
+            font-size: clamp(3.4rem, 13dvh, 6.5rem);
+            filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.15));
         }
 
-        header { text-align: center; padding-top: max(16px, env(safe-area-inset-top)); }
-        .subtitle { color: #7c8db5; font-weight: 700; margin-bottom: 14px; }
+        .t-color { background: linear-gradient(160deg, #ff9a9e, #e4572e); }
+        .t-abc { background: linear-gradient(160deg, #74ebd5, #209ce7); }
+        .t-num { background: linear-gradient(160deg, #a8ff78, #17b978); }
+        .t-shape { background: linear-gradient(160deg, #c471f5, #9b5de5); }
     </style>
 </head>
 <body>
+<div class="bubbles" id="bubbles"></div>
+
+<div class="corner-controls">
+    <button class="icon-btn" id="soundBtn">🔊</button>
+    <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+</div>
+
 <header>
     <div class="logo"><span>🧸</span><span>T</span><span>O</span><span>T</span><span>·</span><span>P</span><span>L</span><span>A</span><span>Y</span></div>
     <p class="subtitle">Tap a game to play!</p>
 </header>
 
-<main class="menu stage">
+<main class="menu">
     <a class="tile t-color" href="games/coloring.html"><span class="emoji">🎨</span>Colors</a>
     <a class="tile t-abc" href="games/abc-match.html"><span class="emoji">🔤</span>ABC Match</a>
     <a class="tile t-num" href="games/number-match.html"><span class="emoji">🔢</span>Numbers</a>
@@ -79,7 +113,23 @@
 </main>
 
 <script src="js/common.js"></script>
+<script src="js/sound-toggle.js"></script>
 <script>
+    document.getElementById("fsBtn").addEventListener("click", TotFS.toggle);
+
+    const bubbles = document.getElementById("bubbles");
+    const chars = ["🎈", "⭐", "☁️", "🌈", "🦋", "🌸"];
+    for (let i = 0; i < 14; i++) {
+        const s = document.createElement("span");
+        s.textContent = chars[i % chars.length];
+        s.style.left = Math.random() * 96 + "vw";
+        s.style.fontSize = (22 + Math.random() * 40) + "px";
+        const dur = 14 + Math.random() * 18;
+        s.style.animationDuration = dur + "s";
+        s.style.animationDelay = -Math.random() * dur + "s";
+        bubbles.appendChild(s);
+    }
+
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").catch(() => {});
     }

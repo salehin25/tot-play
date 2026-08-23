@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#a18cd1">
     <title>ABC Match</title>
     <link rel="stylesheet" href="../css/shared.css">
 </head>
 <body>
+<div class="bubbles" id="bubbles"></div>
+
 <div class="topbar">
     <a class="home-btn" href="../index.html">🏠</a>
     <div class="title">🔤 ABC Match</div>
-    <button class="icon-btn" id="soundBtn">🔊</button>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
 </div>
 
 <main class="stage">
-    <div class="match-board" id="board">
+    <div class="match-board" id="board" style="--pairs:5">
         <div class="col col-left"></div>
         <div class="col col-right"></div>
     </div>
@@ -24,14 +30,15 @@
 <script src="../js/common.js"></script>
 <script>
     const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-    const COLORS = ["#e4572e", "#209ce7", "#17b978", "#a55eea", "#ff6b81", "#f9bc60"];
+    const COLORS = ["#e4572e", "#209ce7", "#17b978", "#9b5de5", "#f15bb5", "#ff9f1c"];
     createMatchGame({
         pool: LETTERS.map(l => ({ id: l })),
-        pairsPerRound: 3,
-        praise: ["Great job!", "Awesome!", "You did it!", "Super!"],
-        render: (item) => `<span style="color:${COLORS[(item.id.charCodeAt(0)) % COLORS.length]}">${item.id}</span>`
+        pairsPerRound: 5,
+        praise: ["Great job!", "Awesome!", "You did it!", "Super star!"],
+        render: item => `<span style="color:${COLORS[item.id.charCodeAt(0) % COLORS.length]}">${item.id}</span>`
     });
 </script>
 <script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE = "tot-play-v1";
+const CACHE = "tot-play-v2";
 const ASSETS = [
     "./",
     "index.html",
@@ -9,6 +9,7 @@ const ASSETS = [
     "css/shared.css",
     "js/common.js",
     "js/sound-toggle.js",
+    "js/page-init.js",
     "js/coloring.js",
     "js/coloring-data.js",
     "manifest.webmanifest",
