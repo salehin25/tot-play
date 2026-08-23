@@ -166,26 +166,30 @@
     }
 
     function buildSizes() {
-        const wrap = document.getElementById("sizes");
+        const wrapLeft = document.querySelector("#toolBrush").closest(".side-panel")?.querySelector("#sizes");
+        const wrapRight = document.querySelector(".side-panel:last-of-type #sizes");
+        const wraps = [wrapLeft, wrapRight].filter(Boolean);
         BRUSH_SIZES.forEach((s, i) => {
-            const b = document.createElement("button");
-            b.className = "size-btn" + (s.width === brushSize ? " active" : "");
-            b.setAttribute("aria-label", "brush size " + s.label);
-            const dot = document.createElement("span");
-            dot.className = "size-dot";
-            dot.style.width = dot.style.height = (8 + i * 7) + "px";
-            const lbl = document.createElement("span");
-            lbl.className = "size-label";
-            lbl.textContent = s.label;
-            b.appendChild(dot);
-            b.appendChild(lbl);
-            b.addEventListener("click", () => {
-                brushSize = s.width;
-                document.querySelectorAll(".size-btn").forEach(x => x.classList.remove("active"));
-                b.classList.add("active");
-                TotAudio.pick();
+            wraps.forEach(wrap => {
+                const b = document.createElement("button");
+                b.className = "size-btn" + (s.width === brushSize ? " active" : "");
+                b.setAttribute("aria-label", "brush size " + s.label);
+                const dot = document.createElement("span");
+                dot.className = "size-dot";
+                dot.style.width = dot.style.height = (8 + i * 7) + "px";
+                const lbl = document.createElement("span");
+                lbl.className = "size-label";
+                lbl.textContent = s.label;
+                b.appendChild(dot);
+                b.appendChild(lbl);
+                b.addEventListener("click", () => {
+                    brushSize = s.width;
+                    document.querySelectorAll(".size-btn").forEach(x => x.classList.remove("active"));
+                    b.classList.add("active");
+                    TotAudio.pick();
+                });
+                wrap.appendChild(b);
             });
-            wrap.appendChild(b);
         });
     }
 

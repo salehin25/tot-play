@@ -1,4 +1,4 @@
-const CACHE = "tot-play-v4";
+const CACHE = "tot-play-v5";
 const ASSETS = [
     "./",
     "index.html",
