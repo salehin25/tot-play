@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Coloring Fun</title>
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        .canvas-card {
+            background: var(--card);
+            border-radius: 26px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 640px;
+            display: grid;
+            place-items: center;
+            padding: 10px;
+        }
+
+        .canvas-card svg { width: 100%; height: auto; touch-action: manipulation; }
+
+        .fill-region { cursor: pointer; transition: fill 0.15s; }
+
+        .palette {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .swatch {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 6px solid #fff;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: transform 0.12s, outline 0.1s;
+            outline: 4px solid transparent;
+        }
+
+        .swatch.selected {
+            transform: scale(1.18);
+            outline-color: var(--ink);
+        }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">🎨 Coloring Fun</div>
+    <button class="icon-btn" id="soundBtn">🔊</button>
+</div>
+
+<main class="stage">
+    <div class="canvas-card">
+        <svg id="art" viewBox="0 0 400 320"></svg>
+    </div>
+    <div class="palette" id="palette"></div>
+    <div style="display:flex; gap:14px;">
+        <button class="btn-big" id="prevBtn">⬅️</button>
+        <button class="btn-big" id="clearBtn">🧽</button>
+        <button class="btn-big" id="nextBtn">➡️</button>
+    </div>
+</main>
+
+<script src="../js/common.js"></script>
+<script src="../js/coloring-data.js"></script>
+<script src="../js/coloring.js"></script>
+<script src="../js/sound-toggle.js"></script>
+</body>
+</html>

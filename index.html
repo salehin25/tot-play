@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#fef6e4">
+    <title>Tot Play</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/shared.css">
+    <style>
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            border-radius: 28px;
+            border: none;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            font-size: clamp(1rem, 4vw, 1.3rem);
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+            cursor: pointer;
+            transition: transform 0.12s;
+            text-decoration: none;
+        }
+
+        .tile:active { transform: scale(0.94); }
+
+        .tile .emoji { font-size: clamp(3rem, 13vw, 4.6rem); filter: drop-shadow(0 3px 0 rgba(0,0,0,0.15)); }
+
+        .t-color { background: linear-gradient(160deg, #ff8fa3, #e4572e); }
+        .t-abc { background: linear-gradient(160deg, #6fc3ff, #209ce7); }
+        .t-num { background: linear-gradient(160deg, #7be3b1, #17b978); }
+        .t-shape { background: linear-gradient(160deg, #d0a9ff, #a55eea); }
+
+        .logo { font-size: clamp(2.2rem, 9vw, 3.4rem); margin: 10px 0 2px; }
+
+        .logo span { display: inline-block; animation: bounce 1.6s ease infinite; }
+        .logo span:nth-child(2) { animation-delay: 0.15s; }
+        .logo span:nth-child(3) { animation-delay: 0.3s; }
+        .logo span:nth-child(4) { animation-delay: 0.45s; }
+        .logo span:nth-child(5) { animation-delay: 0.6s; }
+        .logo span:nth-child(6) { animation-delay: 0.75s; }
+        .logo span:nth-child(7) { animation-delay: 0.9s; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        header { text-align: center; padding-top: max(16px, env(safe-area-inset-top)); }
+        .subtitle { color: #7c8db5; font-weight: 700; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+<header>
+    <div class="logo"><span>🧸</span><span>T</span><span>O</span><span>T</span><span>·</span><span>P</span><span>L</span><span>A</span><span>Y</span></div>
+    <p class="subtitle">Tap a game to play!</p>
+</header>
+
+<main class="menu stage">
+    <a class="tile t-color" href="games/coloring.html"><span class="emoji">🎨</span>Colors</a>
+    <a class="tile t-abc" href="games/abc-match.html"><span class="emoji">🔤</span>ABC Match</a>
+    <a class="tile t-num" href="games/number-match.html"><span class="emoji">🔢</span>Numbers</a>
+    <a class="tile t-shape" href="games/shape-match.html"><span class="emoji">⭐</span>Shapes</a>
+</main>
+
+<script src="js/common.js"></script>
+<script>
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+</script>
+</body>
+</html>

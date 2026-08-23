@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ABC Match</title>
+    <link rel="stylesheet" href="../css/shared.css">
+</head>
+<body>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">🔤 ABC Match</div>
+    <button class="icon-btn" id="soundBtn">🔊</button>
+</div>
+
+<main class="stage">
+    <div class="match-board" id="board">
+        <div class="col col-left"></div>
+        <div class="col col-right"></div>
+    </div>
+</main>
+
+<svg id="lines"></svg>
+<script src="../js/common.js"></script>
+<script>
+    const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const COLORS = ["#e4572e", "#209ce7", "#17b978", "#a55eea", "#ff6b81", "#f9bc60"];
+    createMatchGame({
+        pool: LETTERS.map(l => ({ id: l })),
+        pairsPerRound: 3,
+        praise: ["Great job!", "Awesome!", "You did it!", "Super!"],
+        render: (item) => `<span style="color:${COLORS[(item.id.charCodeAt(0)) % COLORS.length]}">${item.id}</span>`
+    });
+</script>
+<script src="../js/sound-toggle.js"></script>
+</body>
+</html>

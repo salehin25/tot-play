@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Number Match</title>
+    <link rel="stylesheet" href="../css/shared.css">
+</head>
+<body>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">🔢 Number Match</div>
+    <button class="icon-btn" id="soundBtn">🔊</button>
+</div>
+
+<main class="stage">
+    <div class="match-board" id="board">
+        <div class="col col-left"></div>
+        <div class="col col-right"></div>
+    </div>
+</main>
+
+<svg id="lines"></svg>
+<script src="../js/common.js"></script>
+<script>
+    const DOT_COLORS = ["#a55eea", "#209ce7", "#e4572e", "#ff6b81", "#f9bc60"];
+    createMatchGame({
+        pool: [1, 2, 3, 4, 5].map(n => ({ id: "n" + n, num: n })),
+        pairsPerRound: 3,
+        praise: ["Well done!", "Brilliant!", "Amazing!", "Perfect!"],
+        render: (item, side) => {
+            if (side === "left") return item.num;
+            const c = DOT_COLORS[(item.num - 1) % DOT_COLORS.length];
+            let dots = "";
+            for (let i = 0; i < item.num; i++) dots += `<span style="background:${c}"></span>`;
+            let cols = item.num <= 2 ? item.num : Math.ceil(item.num / 2);
+            return `<div class="dots" style="grid-template-columns:repeat(${cols}, auto)">${dots}</div>`;
+        }
+    });
+</script>
+<script src="../js/sound-toggle.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Shape Match</title>
+    <link rel="stylesheet" href="../css/shared.css">
+</head>
+<body>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">⭐ Shape Match</div>
+    <button class="icon-btn" id="soundBtn">🔊</button>
+</div>
+
+<main class="stage">
+    <div class="match-board" id="board">
+        <div class="col col-left"></div>
+        <div class="col col-right"></div>
+    </div>
+</main>
+
+<svg id="lines"></svg>
+<script src="../js/common.js"></script>
+<script>
+    createMatchGame({
+        pool: [
+            { id: "circle", emoji: "🔴", label: "Circle" },
+            { id: "square", emoji: "🟦", label: "Square" },
+            { id: "triangle", emoji: "🔺", label: "Triangle" },
+            { id: "star", emoji: "⭐", label: "Star" },
+            { id: "heart", emoji: "💚", label: "Heart" }
+        ],
+        pairsPerRound: 3,
+        praise: ["Fantastic!", "You rock!", "Woohoo!", "Clever kid!"],
+        render: (item, side) => side === "right"
+            ? `<span style="filter:grayscale(1) brightness(0.45)">${item.emoji}</span>`
+            : item.emoji
+    });
+</script>
+<script src="../js/sound-toggle.js"></script>
+</body>
+</html>

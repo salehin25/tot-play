@@ -1,0 +1,213 @@
+:root {
+    --bg: #fef6e4;
+    --ink: #001858;
+    --card: #ffffff;
+    --sun: #f9bc60;
+    --red: #e4572e;
+    --blue: #209ce7;
+    --green: #17b978;
+    --purple: #a55eea;
+    --pink: #ff6b81;
+    --shadow: 0 8px 0 rgba(0, 24, 88, 0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+}
+
+body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI Rounded", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.topbar {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+}
+
+.home-btn, .icon-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    border: none;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    font-size: 28px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--ink);
+    transition: transform 0.1s;
+}
+
+.home-btn:active, .icon-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 rgba(0, 24, 88, 0.15);
+}
+
+.title {
+    font-size: clamp(1.3rem, 5vw, 1.9rem);
+    font-weight: 800;
+}
+
+.stage {
+    width: 100%;
+    max-width: 900px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 16px 24px;
+    gap: 14px;
+}
+
+.btn-big {
+    border: none;
+    border-radius: 20px;
+    padding: 14px 26px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--sun);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.btn-big:active { transform: translateY(4px); }
+
+.match-board {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    align-items: center;
+}
+
+.cell {
+    width: 100%;
+    max-width: 150px;
+    aspect-ratio: 1.25;
+    border-radius: 22px;
+    border: 5px solid transparent;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    display: grid;
+    place-items: center;
+    font-size: clamp(2rem, 9vw, 3.2rem);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.2s, background 0.2s;
+}
+
+.cell.selected {
+    border-color: var(--blue);
+    transform: scale(1.06);
+}
+
+.cell.matched {
+    background: var(--green);
+    color: #fff;
+    animation: pop 0.35s ease;
+    pointer-events: none;
+}
+
+.cell.wrong {
+    animation: shake 0.4s ease;
+    border-color: var(--red);
+}
+
+@keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.dots {
+    display: grid;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+}
+
+.dots span {
+    width: clamp(16px, 5vw, 26px);
+    height: clamp(16px, 5vw, 26px);
+    border-radius: 50%;
+    background: var(--purple);
+    display: block;
+}
+
+#lines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+#confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.big-msg {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 40;
+    pointer-events: none;
+}
+
+.big-msg .txt {
+    font-size: clamp(2.4rem, 11vw, 4.5rem);
+    font-weight: 800;
+    color: var(--green);
+    text-shadow: 0 4px 0 #fff, 0 8px 0 rgba(0,24,88,.12);
+    animation: zoomFade 1s ease forwards;
+}
+
+@keyframes zoomFade {
+    0% { transform: scale(0.3); opacity: 0; }
+    30% { transform: scale(1.15); opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+}
