@@ -1,7 +1,7 @@
 {
     "name": "Tot Play",
     "short_name": "TotPlay",
-    "description": "Fun touch games for toddlers: colors, ABC match, numbers and shapes.",
+    "description": "Fun touch games for toddlers: colors, ABC match, numbers, shapes, letter tracing, silhouette matching, pop counting, peek-a-boo.",
     "start_url": "./index.html",
     "scope": "./",
     "display": "fullscreen",

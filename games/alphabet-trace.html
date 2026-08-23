@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#19547b">
+    <title>Letter Tracer</title>
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" href="../icons/favicon.png">
+    <link rel="apple-touch-icon" href="../icons/icon-192.png">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        .topbar { z-index: 20; }
+        main.stage { padding: 0; gap: 0; }
+        canvas#traceCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        .letter-info { position: fixed; top: max(60px, env(safe-area-inset-top) + 60px); left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); padding: 8px 24px; border-radius: 999px; font-weight: 800; font-size: clamp(1.2rem, 4vh, 2rem); color: var(--ink); z-index: 10; box-shadow: var(--shadow); }
+    </style>
+</head>
+<body>
+<div class="bubbles" id="bubbles"></div>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">✏️ Letter Tracer</div>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
+</div>
+<div class="letter-info" id="letterInfo">A</div>
+<main class="stage">
+    <canvas id="traceCanvas"></canvas>
+</main>
+<script src="../js/common.js"></script>
+<script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
+<script>
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const WORDS = {
+    A: "Apple", B: "Ball", C: "Cat", D: "Dog", E: "Elephant", F: "Fish",
+    G: "Giraffe", H: "Hat", I: "Ice cream", J: "Jelly", K: "Kite", L: "Lion",
+    M: "Moon", N: "Nest", O: "Octopus", P: "Penguin", Q: "Queen", R: "Rabbit",
+    S: "Sun", T: "Turtle", U: "Umbrella", V: "Violin", W: "Whale", X: "Xylophone",
+    Y: "Yacht", Z: "Zebra"
+};
+const COLORS = ["#e4572e","#ff9f1c","#ffc93c","#8ac926","#17b978","#209ce7","#4361ee","#9b5de5","#f15bb5","#8d5524"];
+
+const canvas = document.getElementById("traceCanvas");
+const ctx = canvas.getContext("2d");
+let dpr = window.devicePixelRatio || 1;
+let currentLetterIdx = 0;
+let currentPathIdx = 0;
+let isDrawing = false;
+let guideProgress = 0;
+let guideAnimId = null;
+let strokesCompleted = 0;
+
+const LETTER_PATHS = {
+    A: [[[0.2,0.85],[0.5,0.15]], [[0.5,0.15],[0.8,0.85]], [[0.35,0.5],[0.65,0.5]]],
+    B: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.65,0.15],[0.65,0.35],[0.35,0.35],[0.35,0.5]], [[0.35,0.5],[0.65,0.5],[0.65,0.65],[0.35,0.65],[0.35,0.85]], [[0.65,0.85],[0.2,0.85]]],
+    C: [[[0.8,0.2],[0.5,0.1],[0.2,0.2],[0.15,0.5],[0.2,0.8],[0.5,0.9],[0.8,0.8]]],
+    D: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.7,0.15],[0.8,0.3],[0.8,0.7],[0.7,0.85],[0.2,0.85]]],
+    E: [[[0.8,0.15],[0.2,0.15]], [[0.5,0.5],[0.2,0.5]], [[0.8,0.85],[0.2,0.85]]],
+    F: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.8,0.15]], [[0.2,0.5],[0.65,0.5]]],
+    G: [[[0.8,0.2],[0.5,0.1],[0.2,0.2],[0.15,0.5],[0.2,0.8],[0.5,0.9],[0.8,0.8],[0.8,0.55],[0.45,0.55]]],
+    H: [[[0.2,0.15],[0.2,0.85]], [[0.8,0.15],[0.8,0.85]], [[0.2,0.5],[0.8,0.5]]],
+    I: [[[0.5,0.15],[0.5,0.85]], [[0.2,0.15],[0.8,0.15]], [[0.2,0.85],[0.8,0.85]]],
+    J: [[[0.5,0.15],[0.5,0.7],[0.3,0.85],[0.2,0.85]], [[0.8,0.15],[0.2,0.15]]],
+    K: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.5],[0.8,0.15]], [[0.2,0.5],[0.8,0.85]]],
+    L: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.85],[0.8,0.85]]],
+    M: [[[0.2,0.85],[0.2,0.15]], [[0.2,0.15],[0.5,0.85]], [[0.5,0.85],[0.8,0.15]], [[0.8,0.15],[0.8,0.85]]],
+    N: [[[0.2,0.85],[0.2,0.15]], [[0.2,0.15],[0.8,0.85]], [[0.8,0.85],[0.8,0.15]]],
+    O: [[[0.5,0.15],[0.25,0.2],[0.15,0.5],[0.25,0.8],[0.5,0.85],[0.75,0.8],[0.85,0.5],[0.75,0.2],[0.5,0.15]]],
+    P: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.7,0.15],[0.8,0.3],[0.7,0.5],[0.2,0.5]]],
+    Q: [[[0.5,0.15],[0.25,0.2],[0.15,0.5],[0.25,0.8],[0.5,0.85],[0.75,0.8],[0.85,0.5],[0.75,0.2],[0.5,0.15]], [[0.55,0.55],[0.8,0.85]]],
+    R: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.7,0.15],[0.8,0.3],[0.7,0.5],[0.2,0.5]], [[0.3,0.5],[0.8,0.85]]],
+    S: [[[0.8,0.2],[0.5,0.1],[0.2,0.2],[0.15,0.5],[0.2,0.8],[0.5,0.9],[0.8,0.8]]],
+    T: [[[0.5,0.15],[0.5,0.85]], [[0.15,0.15],[0.85,0.15]]],
+    U: [[[0.2,0.15],[0.2,0.7],[0.3,0.85],[0.7,0.85],[0.8,0.7],[0.8,0.15]]],
+    V: [[[0.2,0.15],[0.5,0.85]], [[0.8,0.15],[0.5,0.85]]],
+    W: [[[0.2,0.15],[0.35,0.85]], [[0.35,0.85],[0.5,0.35]], [[0.5,0.35],[0.65,0.85]], [[0.65,0.85],[0.8,0.15]]],
+    X: [[[0.2,0.15],[0.8,0.85]], [[0.8,0.15],[0.2,0.85]]],
+    Y: [[[0.2,0.15],[0.5,0.5]], [[0.8,0.15],[0.5,0.5]], [[0.5,0.5],[0.5,0.85]]],
+    Z: [[[0.15,0.15],[0.85,0.15]], [[0.85,0.15],[0.15,0.85]], [[0.15,0.85],[0.85,0.85]]]
+};
+
+function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+}
+window.addEventListener("resize", resize);
+resize();
+
+function drawLetterPaths(letter) {
+    const paths = LETTER_PATHS[letter] || [];
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    const scale = Math.min(w, h) * 0.7;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    ctx.strokeStyle = "rgba(25, 84, 123, 0.25)";
+    ctx.lineWidth = Math.max(6, scale * 0.06);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    paths.forEach(path => {
+        ctx.beginPath();
+        ctx.moveTo(cx + (path[0][0] - 0.5) * scale, cy + (path[0][1] - 0.5) * scale);
+        for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(cx + (path[i][0] - 0.5) * scale, cy + (path[i][1] - 0.5) * scale);
+        }
+        ctx.stroke();
+    });
+}
+
+function drawTrail(trail, color) {
+    if (trail.length < 2) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(8, (canvas.width / dpr) * 0.07);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.globalCompositeOperation = "source-over";
+    ctx.beginPath();
+    ctx.moveTo(trail[0].x, trail[0].y);
+    for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
+    ctx.stroke();
+}
+
+function drawGuide(letter, progress) {
+    const paths = LETTER_PATHS[letter] || [];
+    if (paths.length === 0 || currentPathIdx >= paths.length) return;
+    const path = paths[currentPathIdx];
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    const scale = Math.min(w, h) * 0.7;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    const totalLen = path.length - 1;
+    const idx = Math.min(progress * totalLen, totalLen - 0.001);
+    const i = Math.floor(idx);
+    const t = idx - i;
+    const x = cx + (path[i][0] + (path[i+1][0] - path[i][0]) * t - 0.5) * scale;
+    const y = cy + (path[i][1] + (path[i+1][1] - path[i][1]) * t - 0.5) * scale;
+
+    ctx.save();
+    ctx.translate(x, y);
+    const pulse = Math.sin(Date.now() / 200) * 0.15 + 1;
+    ctx.scale(pulse, pulse);
+    ctx.beginPath();
+    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+    ctx.fillStyle = "#209ce7";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, -8, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 2, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#333";
+    ctx.fill();
+    ctx.restore();
+}
+
+function animateGuide() {
+    guideProgress += 0.008;
+    if (guideProgress >= 1) guideProgress = 0;
+    drawFrame();
+    guideAnimId = requestAnimationFrame(animateGuide);
+}
+
+function drawFrame() {
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const letter = LETTERS[currentLetterIdx];
+    drawLetterPaths(letter);
+    if (guideProgress > 0) drawGuide(letter, guideProgress);
+}
+
+function speak(text) {
+    if (!TotAudio.isMuted() && "speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.9;
+        u.pitch = 1.1;
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+    }
+}
+
+function checkStrokeComplete(trail, letter) {
+    if (trail.length < 5) return false;
+    const paths = LETTER_PATHS[letter] || [];
+    if (currentPathIdx >= paths.length) return false;
+    const path = paths[currentPathIdx];
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    const scale = Math.min(w, h) * 0.7;
+    const cx = w / 2;
+    const cy = h / 2;
+    const last = trail[trail.length - 1];
+    const target = path[path.length - 1];
+    const tx = cx + (target[0] - 0.5) * scale;
+    const ty = cy + (target[1] - 0.5) * scale;
+    const dist = Math.hypot(last.x - tx, last.y - ty);
+    return dist < Math.max(20, scale * 0.06);
+}
+
+let currentTrail = [];
+
+function onPointerDown(e) {
+    if (isDrawing) return;
+    isDrawing = true;
+    currentTrail = [];
+    const p = getCanvasPos(e);
+    currentTrail.push(p);
+    cancelAnimationFrame(guideAnimId);
+    guideProgress = 0;
+}
+
+function onPointerMove(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const p = getCanvasPos(e);
+    currentTrail.push(p);
+    drawFrame();
+    drawTrail(currentTrail, COLORS[currentLetterIdx % COLORS.length]);
+}
+
+function onPointerUp(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    const letter = LETTERS[currentLetterIdx];
+    if (checkStrokeComplete(currentTrail, letter)) {
+        TotAudio.match();
+        strokesCompleted++;
+        currentPathIdx++;
+        if (currentPathIdx >= (LETTER_PATHS[letter] || []).length) {
+            letterCompleted(letter);
+        } else {
+            guideProgress = 0;
+            animateGuide();
+        }
+    } else {
+        currentPathIdx = 0;
+        strokesCompleted = 0;
+        guideProgress = 0;
+        animateGuide();
+    }
+    currentTrail = [];
+}
+
+function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top;
+    return { x, y };
+}
+
+function letterCompleted(letter) {
+    cancelAnimationFrame(guideAnimId);
+    TotAudio.win();
+    confetti(2000);
+    speak(`${letter} is for ${WORDS[letter]}!`);
+    document.getElementById("letterInfo").textContent = `${letter} is for ${WORDS[letter]}`;
+    setTimeout(() => {
+        currentLetterIdx = (currentLetterIdx + 1) % LETTERS.length;
+        currentPathIdx = 0;
+        strokesCompleted = 0;
+        document.getElementById("letterInfo").textContent = LETTERS[currentLetterIdx];
+        guideProgress = 0;
+        animateGuide();
+    }, 2000);
+}
+
+canvas.addEventListener("pointerdown", onPointerDown);
+canvas.addEventListener("pointermove", onPointerMove);
+canvas.addEventListener("pointerup", onPointerUp);
+canvas.addEventListener("pointercancel", onPointerUp);
+
+animateGuide();
+</script>
+</body>
+</html>

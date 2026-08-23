@@ -50,28 +50,28 @@
         }
 
         main.menu {
-            width: min(92vw, 780px);
+            width: min(92vw, 900px);
             flex: 1;
             min-height: 0;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: clamp(14px, 3vh, 30px);
+            grid-template-rows: repeat(4, 1fr);
+            gap: clamp(12px, 2.5vh, 24px);
             padding: max(12px, env(safe-area-inset-top)) 16px calc(max(16px, env(safe-area-inset-bottom)) + 8px);
             z-index: 5;
         }
 
         .tile {
-            border-radius: 32px;
+            border-radius: 28px;
             border: none;
             box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1.2vh;
+            gap: 1vh;
             font-family: inherit;
-            font-size: clamp(1.3rem, 3.6vh, 2.1rem);
+            font-size: clamp(1.1rem, 3vh, 1.7rem);
             font-weight: 800;
             color: #fff;
             text-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
@@ -84,7 +84,7 @@
         .tile:active { transform: scale(0.93); }
 
         .tile .emoji {
-            font-size: clamp(3.4rem, 13vh, 6.5rem);
+            font-size: clamp(2.8rem, 11vh, 5.5rem);
             filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.15));
         }
 
@@ -92,6 +92,10 @@
         .t-abc { background: linear-gradient(160deg, #74ebd5, #209ce7); }
         .t-num { background: linear-gradient(160deg, #a8ff78, #17b978); }
         .t-shape { background: linear-gradient(160deg, #c471f5, #9b5de5); }
+        .t-trace { background: linear-gradient(160deg, #ffd89b, #19547b); }
+        .t-silhouette { background: linear-gradient(160deg, #fbc2eb, #a6c1ee); }
+        .t-pop { background: linear-gradient(160deg, #ee9ca7, #ffdde1); }
+        .t-peekaboo { background: linear-gradient(160deg, #a1c4fd, #c2e9fb); }
     </style>
 </head>
 <body>
@@ -112,6 +116,10 @@
     <a class="tile t-abc" href="games/abc-match.html"><span class="emoji">🔤</span>ABC Match</a>
     <a class="tile t-num" href="games/number-match.html"><span class="emoji">🔢</span>Numbers</a>
     <a class="tile t-shape" href="games/shape-match.html"><span class="emoji">⭐</span>Shapes</a>
+    <a class="tile t-trace" href="games/alphabet-trace.html"><span class="emoji">✏️</span>Letter Tracer</a>
+    <a class="tile t-silhouette" href="games/silhouette-match.html"><span class="emoji">🧩</span>Silhouette Match</a>
+    <a class="tile t-pop" href="games/pop-count.html"><span class="emoji">🎈</span>Pop & Count</a>
+    <a class="tile t-peekaboo" href="games/peekaboo.html"><span class="emoji">🚪</span>Peek-a-Boo</a>
 </main>
 
 <script src="js/common.js"></script>

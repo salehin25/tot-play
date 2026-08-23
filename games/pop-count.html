@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ee9ca7">
+    <title>Pop & Count</title>
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" href="../icons/favicon.png">
+    <link rel="apple-touch-icon" href="../icons/icon-192.png">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        .topbar { z-index: 20; }
+        main.stage { position: relative; padding: 0; }
+        canvas#popCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        .counter { position: fixed; top: max(60px, env(safe-area-inset-top) + 60px); left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 8px 28px; border-radius: 999px; font-weight: 800; font-size: clamp(1.5rem, 5vh, 2.5rem); color: var(--ink); z-index: 10; box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px; }
+        .counter .label { font-size: clamp(0.9rem, 3vh, 1.3rem); opacity: 0.7; }
+        .mode-btns { position: fixed; bottom: max(20px, env(safe-area-inset-bottom) + 20px); left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 10; }
+        .mode-btn { width: clamp(50px, 8vh, 65px); height: clamp(50px, 8vh, 65px); border: none; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: clamp(20px, 3.5vh, 28px); display: grid; place-items: center; cursor: pointer; transition: transform 0.1s, background 0.2s; }
+        .mode-btn:active { transform: scale(0.95); }
+        .mode-btn.active { background: linear-gradient(160deg, #ffd166, #ff9f1c); outline: 4px solid #fff; }
+    </style>
+</head>
+<body>
+<div class="bubbles" id="bubbles"></div>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">🎈 Pop & Count</div>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
+</div>
+<div class="counter"><span id="countDisplay">0</span><span class="label">pops</span></div>
+<main class="stage">
+    <canvas id="popCanvas"></canvas>
+</main>
+<div class="mode-btns">
+    <button class="mode-btn active" id="modeCount" data-mode="count">123</button>
+    <button class="mode-btn" id="modeColor" data-mode="color">🎨</button>
+    <button class="mode-btn" id="modeAnimal" data-mode="animal">🐶</button>
+</div>
+<script src="../js/common.js"></script>
+<script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
+<script>
+const BALLOON_COLORS = ["#e4572e","#ff9f1c","#ffc93c","#8ac926","#17b978","#209ce7","#4361ee","#9b5de5","#f15bb5","#ff6b81"];
+const ANIMALS = ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵"];
+const NUMBERS = ["One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen"];
+const COLORS_WORDS = ["Red","Orange","Yellow","Green","Blue","Indigo","Violet","Purple","Pink","Brown"];
+
+const canvas = document.getElementById("popCanvas");
+const ctx = canvas.getContext("2d");
+let dpr = window.devicePixelRatio || 1;
+let count = 0;
+let mode = "count"; // count, color, animal
+let balloons = [];
+let animId = null;
+let spawnTimer = null;
+
+function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+}
+window.addEventListener("resize", resize);
+resize();
+
+function spawnBalloon() {
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    const r = 35 + Math.random() * 25;
+    balloons.push({
+        x: r + Math.random() * (w - 2 * r),
+        y: h + r,
+        r,
+        color: BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)],
+        animal: ANIMALS[Math.floor(Math.random() * ANIMALS.length)],
+        colorIdx: Math.floor(Math.random() * BALLOON_COLORS.length),
+        vy: -(0.8 + Math.random() * 0.8),
+        vx: (Math.random() - 0.5) * 0.4,
+        popped: false,
+        popAnim: 0
+    });
+}
+
+function drawBalloon(b) {
+    if (b.popped) {
+        drawPop(b);
+        return;
+    }
+    const grad = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, 0, b.x, b.y, b.r);
+    grad.addColorStop(0, lighten(b.color, 40));
+    grad.addColorStop(1, darken(b.color, 20));
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, b.r, b.r * 1.15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y + b.r * 1.15);
+    ctx.quadraticCurveTo(b.x, b.y + b.r * 1.5, b.x - 3, b.y + b.r * 1.8);
+    ctx.strokeStyle = darken(b.color, 30);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+}
+
+function drawPop(b) {
+    b.popAnim += 0.15;
+    if (b.popAnim > 1) return;
+    const particles = 12;
+    for (let i = 0; i < particles; i++) {
+        const angle = (i / particles) * Math.PI * 2;
+        const dist = b.popAnim * b.r * 2.5;
+        const px = b.x + Math.cos(angle) * dist;
+        const py = b.y + Math.sin(angle) * dist;
+        const pr = (1 - b.popAnim) * 8;
+        ctx.beginPath();
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+    }
+}
+
+function lighten(c, amt) { const n = parseInt(c.slice(1),16); const r = Math.min(255, (n>>16) + amt); const g = Math.min(255, ((n>>8)&255) + amt); const b = Math.min(255, (n&255) + amt); return "#" + ((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1); }
+function darken(c, amt) { const n = parseInt(c.slice(1),16); const r = Math.max(0, (n>>16) - amt); const g = Math.max(0, ((n>>8)&255) - amt); const b = Math.max(0, (n&255) - amt); return "#" + ((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1); }
+
+function animate() {
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    balloons = balloons.filter(b => {
+        if (b.popped) {
+            b.popAnim += 0.12;
+            drawPop(b);
+            return b.popAnim < 1;
+        }
+        b.y += b.vy;
+        b.x += b.vx;
+        if (b.x < b.r) { b.x = b.r; b.vx *= -1; }
+        if (b.x > w - b.r) { b.x = w - b.r; b.vx *= -1; }
+        drawBalloon(b);
+        return b.y > -b.r;
+    });
+    animId = requestAnimationFrame(animate);
+}
+
+function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left,
+        y: (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+    };
+}
+
+canvas.addEventListener("pointerdown", e => {
+    const p = getCanvasPos(e);
+    balloons.forEach(b => {
+        if (!b.popped) {
+            const dx = p.x - b.x;
+            const dy = p.y - b.y;
+            if (dx*dx + dy*dy <= b.r * b.r) {
+                popBalloon(b);
+            }
+        }
+    });
+});
+
+function popBalloon(b) {
+    if (b.popped) return;
+    b.popped = true;
+    b.popAnim = 0;
+    count++;
+    updateCount();
+    TotAudio.tap();
+    speakPop(b);
+    confetti(800);
+}
+
+function updateCount() {
+    document.getElementById("countDisplay").textContent = count;
+}
+
+function speakPop(b) {
+    if (TotAudio.isMuted() || !("speechSynthesis" in window)) return;
+    let text = "";
+    if (mode === "count") {
+        text = NUMBERS[Math.min(count - 1, NUMBERS.length - 1)];
+    } else if (mode === "color") {
+        text = COLORS_WORDS[b.colorIdx % COLORS_WORDS.length];
+    } else if (mode === "animal") {
+        text = ANIMALS[ANIMALS.indexOf(b.animal)];
+    }
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9;
+    u.pitch = 1.1;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+}
+
+document.getElementById("modeCount").addEventListener("click", () => setMode("count"));
+document.getElementById("modeColor").addEventListener("click", () => setMode("color"));
+document.getElementById("modeAnimal").addEventListener("click", () => setMode("animal"));
+
+function setMode(m) {
+    mode = m;
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("mode" + m.charAt(0).toUpperCase() + m.slice(1)).classList.add("active");
+    TotAudio.pick();
+}
+
+function startSpawning() {
+    spawnTimer = setInterval(spawnBalloon, 1200);
+}
+function stopSpawning() {
+    clearInterval(spawnTimer);
+}
+
+animate();
+startSpawning();
+
+window.addEventListener("beforeunload", () => { stopSpawning(); cancelAnimationFrame(animId); });
+</script>
+</body>
+</html>
