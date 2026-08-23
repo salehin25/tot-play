@@ -15,10 +15,6 @@
         canvas#popCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
         .counter { position: fixed; top: max(60px, env(safe-area-inset-top) + 60px); left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 8px 28px; border-radius: 999px; font-weight: 800; font-size: clamp(1.5rem, 5vh, 2.5rem); color: var(--ink); z-index: 10; box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px; }
         .counter .label { font-size: clamp(0.9rem, 3vh, 1.3rem); opacity: 0.7; }
-        .mode-btns { position: fixed; bottom: max(20px, env(safe-area-inset-bottom) + 20px); left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 10; }
-        .mode-btn { width: clamp(50px, 8vh, 65px); height: clamp(50px, 8vh, 65px); border: none; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: clamp(20px, 3.5vh, 28px); display: grid; place-items: center; cursor: pointer; transition: transform 0.1s, background 0.2s; }
-        .mode-btn:active { transform: scale(0.95); }
-        .mode-btn.active { background: linear-gradient(160deg, #ffd166, #ff9f1c); outline: 4px solid #fff; }
     </style>
 </head>
 <body>
@@ -35,28 +31,31 @@
 <main class="stage">
     <canvas id="popCanvas"></canvas>
 </main>
-<div class="mode-btns">
-    <button class="mode-btn active" id="modeCount" data-mode="count">123</button>
-    <button class="mode-btn" id="modeColor" data-mode="color">🎨</button>
-    <button class="mode-btn" id="modeAnimal" data-mode="animal">🐶</button>
-</div>
 <script src="../js/common.js"></script>
 <script src="../js/sound-toggle.js"></script>
 <script src="../js/page-init.js"></script>
 <script>
-const BALLOON_COLORS = ["#e4572e","#ff9f1c","#ffc93c","#8ac926","#17b978","#209ce7","#4361ee","#9b5de5","#f15bb5","#ff6b81"];
-const ANIMALS = ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵"];
-const NUMBERS = ["One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen"];
-const COLORS_WORDS = ["Red","Orange","Yellow","Green","Blue","Indigo","Violet","Purple","Pink","Brown"];
+const BALLOON_COLORS = [
+    { color: "#e4572e", highlight: "#ff7a4a" },
+    { color: "#ff9f1c", highlight: "#ffb84d" },
+    { color: "#ffc93c", highlight: "#ffe06b" },
+    { color: "#8ac926", highlight: "#a8e650" },
+    { color: "#17b978", highlight: "#40e0a0" },
+    { color: "#209ce7", highlight: "#5abfff" },
+    { color: "#4361ee", highlight: "#7a8bff" },
+    { color: "#9b5de5", highlight: "#c48dff" },
+    { color: "#f15bb5", highlight: "#ff8ad1" },
+    { color: "#8d5524", highlight: "#c98040" }
+];
 
 const canvas = document.getElementById("popCanvas");
 const ctx = canvas.getContext("2d");
 let dpr = window.devicePixelRatio || 1;
 let count = 0;
-let mode = "count"; // count, color, animal
 let balloons = [];
 let animId = null;
 let spawnTimer = null;
+let lastTime = 0;
 
 function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -70,18 +69,20 @@ resize();
 function spawnBalloon() {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
-    const r = 35 + Math.random() * 25;
+    const r = 38 + Math.random() * 22;
+    const bc = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
     balloons.push({
         x: r + Math.random() * (w - 2 * r),
-        y: h + r,
+        y: h + r + 20,
         r,
-        color: BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)],
-        animal: ANIMALS[Math.floor(Math.random() * ANIMALS.length)],
-        colorIdx: Math.floor(Math.random() * BALLOON_COLORS.length),
-        vy: -(0.8 + Math.random() * 0.8),
-        vx: (Math.random() - 0.5) * 0.4,
+        color: bc.color,
+        highlight: bc.highlight,
+        vy: -(1.4 + Math.random() * 1.0),
+        vx: (Math.random() - 0.5) * 0.5,
         popped: false,
-        popAnim: 0
+        popAnim: 0,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.02 + Math.random() * 0.02
     });
 }
 
@@ -90,48 +91,72 @@ function drawBalloon(b) {
         drawPop(b);
         return;
     }
-    const grad = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, 0, b.x, b.y, b.r);
-    grad.addColorStop(0, lighten(b.color, 40));
-    grad.addColorStop(1, darken(b.color, 20));
+    b.wobble += b.wobbleSpeed;
+    const wx = Math.sin(b.wobble) * 3;
+
+    const grad = ctx.createRadialGradient(b.x + wx - b.r * 0.3, b.y - b.r * 0.3, 0, b.x + wx, b.y, b.r);
+    grad.addColorStop(0, lighten(b.color, 35));
+    grad.addColorStop(0.4, b.color);
+    grad.addColorStop(1, darken(b.color, 25));
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y, b.r, b.r * 1.15, 0, 0, Math.PI * 2);
+    ctx.ellipse(b.x + wx, b.y, b.r, b.r * 1.18, 0, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
+
+    // Highlight
+    const hgrad = ctx.createRadialGradient(b.x + wx - b.r * 0.35, b.y - b.r * 0.35, 0, b.x + wx - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.5);
+    hgrad.addColorStop(0, "rgba(255,255,255,0.4)");
+    hgrad.addColorStop(1, "rgba(255,255,255,0)");
     ctx.beginPath();
-    ctx.moveTo(b.x, b.y + b.r * 1.15);
-    ctx.quadraticCurveTo(b.x, b.y + b.r * 1.5, b.x - 3, b.y + b.r * 1.8);
-    ctx.strokeStyle = darken(b.color, 30);
-    ctx.lineWidth = 3;
+    ctx.ellipse(b.x + wx, b.y, b.r * 0.7, b.r * 0.8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = hgrad;
+    ctx.fill();
+
+    // String
+    ctx.beginPath();
+    ctx.moveTo(b.x + wx, b.y + b.r * 1.18);
+    ctx.quadraticCurveTo(b.x + wx, b.y + b.r * 1.4, b.x + wx + 2, b.y + b.r * 1.7);
+    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+    ctx.lineWidth = 2;
     ctx.stroke();
 }
 
 function drawPop(b) {
-    b.popAnim += 0.15;
+    b.popAnim += 0.18;
     if (b.popAnim > 1) return;
-    const particles = 12;
+    const particles = 14;
     for (let i = 0; i < particles; i++) {
         const angle = (i / particles) * Math.PI * 2;
-        const dist = b.popAnim * b.r * 2.5;
+        const dist = b.popAnim * b.r * 2.8;
         const px = b.x + Math.cos(angle) * dist;
         const py = b.y + Math.sin(angle) * dist;
-        const pr = (1 - b.popAnim) * 8;
+        const pr = (1 - b.popAnim) * (8 + Math.random() * 6);
         ctx.beginPath();
         ctx.arc(px, py, pr, 0, Math.PI * 2);
         ctx.fillStyle = b.color;
         ctx.fill();
     }
+    // Center flash
+    const flashR = (1 - b.popAnim) * b.r * 1.5;
+    const fgrad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, flashR);
+    fgrad.addColorStop(0, "rgba(255,255,255,0.8)");
+    fgrad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, flashR, 0, Math.PI * 2);
+    ctx.fillStyle = fgrad;
+    ctx.fill();
 }
 
 function lighten(c, amt) { const n = parseInt(c.slice(1),16); const r = Math.min(255, (n>>16) + amt); const g = Math.min(255, ((n>>8)&255) + amt); const b = Math.min(255, (n&255) + amt); return "#" + ((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1); }
 function darken(c, amt) { const n = parseInt(c.slice(1),16); const r = Math.max(0, (n>>16) - amt); const g = Math.max(0, ((n>>8)&255) - amt); const b = Math.max(0, (n&255) - amt); return "#" + ((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1); }
 
-function animate() {
+function animate(time) {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     balloons = balloons.filter(b => {
         if (b.popped) {
-            b.popAnim += 0.12;
+            b.popAnim += 0.15;
             drawPop(b);
             return b.popAnim < 1;
         }
@@ -173,50 +198,57 @@ function popBalloon(b) {
     count++;
     updateCount();
     TotAudio.tap();
-    speakPop(b);
-    confetti(800);
+    playPopSound();
+    confetti(600);
 }
 
 function updateCount() {
     document.getElementById("countDisplay").textContent = count;
 }
 
-function speakPop(b) {
-    if (TotAudio.isMuted() || !("speechSynthesis" in window)) return;
-    let text = "";
-    if (mode === "count") {
-        text = NUMBERS[Math.min(count - 1, NUMBERS.length - 1)];
-    } else if (mode === "color") {
-        text = COLORS_WORDS[b.colorIdx % COLORS_WORDS.length];
-    } else if (mode === "animal") {
-        text = ANIMALS[ANIMALS.indexOf(b.animal)];
-    }
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.9;
-    u.pitch = 1.1;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+function playPopSound() {
+    if (TotAudio.isMuted()) return;
+    const ctx = TotAudio.unlock();
+    if (!ctx) return;
+    // Satisfying pop: quick pitch drop with noise burst
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const noise = ctx.createBufferSource();
+    const bufferSize = ctx.sampleRate * 0.1;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    noise.buffer = buffer;
+    const noiseGain = ctx.createGain();
+    
+    o.type = "sine";
+    o.frequency.setValueAtTime(800, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.12);
+    g.gain.setValueAtTime(0.25, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    o.connect(g).connect(ctx.destination);
+    
+    noise.connect(noiseGain).connect(ctx.destination);
+    noiseGain.gain.setValueAtTime(0.15, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    
+    o.start();
+    o.stop(ctx.currentTime + 0.12);
+    noise.start();
 }
 
-document.getElementById("modeCount").addEventListener("click", () => setMode("count"));
-document.getElementById("modeColor").addEventListener("click", () => setMode("color"));
-document.getElementById("modeAnimal").addEventListener("click", () => setMode("animal"));
-
-function setMode(m) {
-    mode = m;
-    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
-    document.getElementById("mode" + m.charAt(0).toUpperCase() + m.slice(1)).classList.add("active");
-    TotAudio.pick();
+function updateCount() {
+    document.getElementById("countDisplay").textContent = count;
 }
 
 function startSpawning() {
-    spawnTimer = setInterval(spawnBalloon, 1200);
+    spawnTimer = setInterval(spawnBalloon, 900);
 }
 function stopSpawning() {
     clearInterval(spawnTimer);
 }
 
-animate();
+animate(0);
 startSpawning();
 
 window.addEventListener("beforeunload", () => { stopSpawning(); cancelAnimationFrame(animId); });
