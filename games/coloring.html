@@ -7,51 +7,11 @@
     <title>Coloring Fun</title>
     <link rel="stylesheet" href="../css/shared.css">
     <style>
-        .canvas-wrap {
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-            display: grid;
-            place-items: center;
+        main.stage {
+            flex-direction: row;
+            align-items: stretch;
+            padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 8px);
         }
-
-        #paint {
-            max-width: 96%;
-            max-height: 96%;
-            border-radius: 24px;
-            background: #fff;
-            box-shadow: 0 14px 0 rgba(36, 49, 94, 0.16), 0 20px 40px rgba(36, 49, 94, 0.18);
-            touch-action: none;
-        }
-
-        .toolbar {
-            display: flex;
-            gap: clamp(8px, 1.4dvh, 14px);
-            align-items: center;
-            justify-content: center;
-            flex-wrap: nowrap;
-        }
-
-        .tool, .nav-btn {
-            width: clamp(48px, 8.5dvh, 74px);
-            height: clamp(48px, 8.5dvh, 74px);
-            border-radius: 18px;
-            border: none;
-            background: var(--card);
-            box-shadow: var(--shadow);
-            font-size: clamp(22px, 3.6dvh, 34px);
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        .tool.active {
-            background: linear-gradient(160deg, #ffd166, #ff9f1c);
-            outline: 5px solid #fff;
-        }
-
-        .tool:active, .nav-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(36, 49, 94, 0.16); }
 
         .pic-name {
             position: absolute;
@@ -67,29 +27,100 @@
             color: var(--ink);
         }
 
+        .canvas-wrap {
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
+            display: grid;
+            place-items: center;
+            position: relative;
+        }
+
+        #paint {
+            max-width: 98%;
+            max-height: 100%;
+            aspect-ratio: 900 / 640;
+            border-radius: 24px;
+            background: #fff;
+            box-shadow: 0 14px 0 rgba(36, 49, 94, 0.16), 0 20px 40px rgba(36, 49, 94, 0.18);
+            touch-action: none;
+        }
+
+        .side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(10px, 1.8dvh, 18px);
+            padding: clamp(10px, 1.8dvh, 18px) clamp(10px, 1vw, 16px);
+            border-radius: 26px;
+            background: rgba(255, 255, 255, 0.55);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
+            box-shadow: var(--shadow);
+        }
+
         .palette {
             display: flex;
-            gap: clamp(8px, 1.4dvh, 14px);
-            flex-wrap: nowrap;
+            flex-direction: column;
+            gap: clamp(6px, 1dvh, 10px);
         }
 
         .swatch {
-            width: clamp(40px, 7dvh, 62px);
-            height: clamp(40px, 7dvh, 62px);
+            width: clamp(38px, 6dvh, 54px);
+            height: clamp(38px, 6dvh, 54px);
             border-radius: 50%;
-            border: 5px solid #fff;
-            box-shadow: var(--shadow);
+            border: 4px solid #fff;
+            box-shadow: 0 4px 0 rgba(36, 49, 94, 0.16);
             cursor: pointer;
-            transition: transform 0.12s, outline-color 0.1s;
             outline: 4px solid transparent;
+            transition: transform 0.12s, outline-color 0.1s;
+            flex: 0 0 auto;
         }
 
         .swatch.selected {
-            transform: scale(1.16);
+            transform: scale(1.15);
             outline-color: var(--ink);
         }
 
-        main.stage { max-width: 1100px; }
+        .tools {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1dvh, 10px);
+        }
+
+        .tool, .nav-btn {
+            width: clamp(44px, 7dvh, 62px);
+            height: clamp(44px, 7dvh, 62px);
+            border: none;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 5px 0 rgba(36, 49, 94, 0.16);
+            font-size: clamp(19px, 3dvh, 27px);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            flex: 0 0 auto;
+        }
+
+        .tool.active {
+            background: linear-gradient(160deg, #ffd166, #ff9f1c);
+            outline: 4px solid #fff;
+        }
+
+        .nav {
+            display: flex;
+            gap: clamp(6px, 1dvh, 10px);
+        }
+
+        @media (orientation: portrait) {
+            main.stage { flex-direction: column; }
+            .side { flex-direction: row; width: 100%; justify-content: center; }
+            .palette { flex-direction: row; }
+            .tools { flex-direction: row; }
+            #paint { max-height: 100%; max-width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -110,15 +141,19 @@
     <div class="canvas-wrap">
         <canvas id="paint" aria-label="coloring canvas"></canvas>
     </div>
-    <div class="palette" id="palette"></div>
-    <div class="toolbar">
-        <button class="nav-btn" id="prevBtn">⬅️</button>
-        <button class="tool" id="toolFill">🪣</button>
-        <button class="tool" id="toolBrush">🖌️</button>
-        <button class="tool" id="undoBtn">↩️</button>
-        <button class="tool" id="clearBtn">🧽</button>
-        <button class="nav-btn" id="nextBtn">➡️</button>
-    </div>
+    <aside class="side">
+        <div class="palette" id="palette"></div>
+        <div class="tools">
+            <button class="tool active" id="toolFill">🪣</button>
+            <button class="tool" id="toolBrush">🖌️</button>
+            <button class="tool" id="undoBtn">↩️</button>
+            <button class="tool" id="clearBtn">🧽</button>
+        </div>
+        <div class="nav">
+            <button class="nav-btn" id="prevBtn">⬅️</button>
+            <button class="nav-btn" id="nextBtn">➡️</button>
+        </div>
+    </aside>
 </main>
 
 <script src="../js/common.js"></script>
