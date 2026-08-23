@@ -40,21 +40,32 @@
         };
     }
 
+    function isDarkPixel(r, g, b) {
+        return (r + g + b) < 120;
+    }
+
     function floodFill(sx, sy, hex) {
         const img = ctx.getImageData(0, 0, W, H);
         const data = new Uint32Array(img.data.buffer);
         sx |= 0; sy |= 0;
         if (sx < 0 || sy < 0 || sx >= W || sy >= H) return;
-        const target = data[sy * W + sx];
+
+        const targetIdx = sy * W + sx;
+        const target = data[targetIdx];
+        const tr = target & 255, tg = (target >> 8) & 255, tb = (target >> 16) & 255;
+
+        if (isDarkPixel(tr, tg, tb)) return;
+
         const fc = hexToRgb(hex);
         const fillVal = (255 << 24) | (fc.b << 16) | (fc.g << 8) | fc.r;
         if (target === fillVal) return;
-        const tr = target & 255, tg = (target >> 8) & 255, tb = (target >> 16) & 255;
+
         const tol = 96;
         const match = v => {
             const r = v & 255, g = (v >> 8) & 255, b = (v >> 16) & 255;
             return Math.abs(r - tr) <= tol && Math.abs(g - tg) <= tol && Math.abs(b - tb) <= tol;
         };
+
         const stack = [[sx, sy]];
         while (stack.length) {
             const [x, y] = stack.pop();
@@ -124,15 +135,17 @@
         ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
     }
 
-    function loadPicture(index) {
+    function loadPicture(index, blankOnly = false) {
         pictureIndex = (index + COLORING_PICTURES.length) % COLORING_PICTURES.length;
         undoStack.length = 0;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, W, H);
-        document.getElementById("picName").textContent = COLORING_PICTURES[pictureIndex].name;
-        const img = new Image();
-        img.onload = () => fitImage(img);
-        img.src = COLORING_PICTURES[pictureIndex].src;
+        document.getElementById("picName").textContent = COLORING_PICTURES[pictureIndex].name + (blankOnly ? " (blank)" : "");
+        if (!blankOnly) {
+            const img = new Image();
+            img.onload = () => fitImage(img);
+            img.src = COLORING_PICTURES[pictureIndex].src;
+        }
     }
 
     function buildPalette() {
@@ -156,12 +169,16 @@
         const wrap = document.getElementById("sizes");
         BRUSH_SIZES.forEach((s, i) => {
             const b = document.createElement("button");
-            b.className = "tool size-btn" + (s.width === brushSize ? " active" : "");
+            b.className = "size-btn" + (s.width === brushSize ? " active" : "");
             b.setAttribute("aria-label", "brush size " + s.label);
             const dot = document.createElement("span");
             dot.className = "size-dot";
             dot.style.width = dot.style.height = (8 + i * 7) + "px";
+            const lbl = document.createElement("span");
+            lbl.className = "size-label";
+            lbl.textContent = s.label;
             b.appendChild(dot);
+            b.appendChild(lbl);
             b.addEventListener("click", () => {
                 brushSize = s.width;
                 document.querySelectorAll(".size-btn").forEach(x => x.classList.remove("active"));
@@ -202,6 +219,11 @@
     document.getElementById("clearBtn").addEventListener("click", () => {
         TotAudio.wrong();
         loadPicture(pictureIndex);
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+        TotAudio.wrong();
+        loadPicture(pictureIndex, true);
     });
 
     document.getElementById("prevBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex - 1); });

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#a18cd1">
     <title>Coloring Fun</title>
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" href="../icons/favicon.png">
+    <link rel="apple-touch-icon" href="../icons/icon-192.png">
     <link rel="stylesheet" href="../css/shared.css">
     <style>
         main.stage {
@@ -47,66 +50,59 @@
         }
 
         .side {
+            width: clamp(160px, 22vw, 200px);
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: clamp(10px, 1.8vh, 18px);
-            padding: clamp(10px, 1.8vh, 18px) clamp(10px, 1vw, 16px);
+            gap: clamp(12px, 2vh, 20px);
+            padding: clamp(12px, 2vh, 20px) clamp(10px, 1vw, 16px);
             border-radius: 26px;
-            background: rgba(255, 255, 255, 0.55);
-            -webkit-backdrop-filter: blur(6px);
-            backdrop-filter: blur(6px);
+            background: rgba(255, 255, 255, 0.6);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
             box-shadow: var(--shadow);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 20px;
+            padding: clamp(10px, 1.5vh, 16px);
+            box-shadow: 0 4px 0 rgba(36, 49, 94, 0.1);
+        }
+
+        .panel-title {
+            font-size: clamp(0.75rem, 2vh, 0.95rem);
+            font-weight: 800;
+            color: var(--ink);
+            opacity: 0.7;
+            margin-bottom: clamp(8px, 1vh, 12px);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .palette {
             display: flex;
-            flex-direction: column;
-            gap: clamp(6px, 1vh, 10px);
+            flex-wrap: wrap;
+            gap: clamp(8px, 1vh, 12px);
+            justify-content: center;
         }
 
         .swatch {
-            width: clamp(38px, 6vh, 54px);
-            height: clamp(38px, 6vh, 54px);
+            width: clamp(36px, 6vh, 50px);
+            height: clamp(36px, 6vh, 50px);
             border-radius: 50%;
             border: 4px solid #fff;
             box-shadow: 0 4px 0 rgba(36, 49, 94, 0.16);
             cursor: pointer;
             outline: 4px solid transparent;
             transition: transform 0.12s, outline-color 0.1s;
-            flex: 0 0 auto;
         }
 
         .swatch.selected {
-            transform: scale(1.15);
+            transform: scale(1.18);
             outline-color: var(--ink);
-        }
-
-        .tools {
-            display: flex;
-            flex-direction: column;
-            gap: clamp(6px, 1vh, 10px);
-        }
-
-        .tool, .nav-btn {
-            width: clamp(44px, 7vh, 62px);
-            height: clamp(44px, 7vh, 62px);
-            border: none;
-            border-radius: 16px;
-            background: #fff;
-            box-shadow: 0 5px 0 rgba(36, 49, 94, 0.16);
-            font-size: clamp(19px, 3vh, 27px);
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            transition: transform 0.1s;
-            flex: 0 0 auto;
-        }
-
-        .tool.active {
-            background: linear-gradient(160deg, #ffd166, #ff9f1c);
-            outline: 4px solid #fff;
         }
 
         .sizes {
@@ -115,10 +111,74 @@
             gap: clamp(6px, 1vh, 10px);
         }
 
+        .size-btn {
+            width: clamp(52px, 9vh, 70px);
+            height: clamp(52px, 9vh, 70px);
+            border: none;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 5px 0 rgba(36, 49, 94, 0.16);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .size-btn:active { transform: translateY(3px); }
+
         .size-dot {
             display: block;
             border-radius: 50%;
             background: var(--ink);
+        }
+
+        .size-label {
+            font-size: clamp(0.6rem, 1.6vh, 0.8rem);
+            font-weight: 800;
+            color: var(--ink);
+            opacity: 0.7;
+        }
+
+        .size-btn.active {
+            background: linear-gradient(160deg, #ffd166, #ff9f1c);
+            outline: 4px solid #fff;
+        }
+
+        .tools {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.2vh, 14px);
+        }
+
+        .tool-row {
+            display: flex;
+            gap: clamp(8px, 1vh, 12px);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tool {
+            width: clamp(48px, 8vh, 66px);
+            height: clamp(48px, 8vh, 66px);
+            border: none;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 5px 0 rgba(36, 49, 94, 0.16);
+            font-size: clamp(20px, 3.5vh, 28px);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .tool:active { transform: translateY(3px); }
+
+        .tool.active {
+            background: linear-gradient(160deg, #ffd166, #ff9f1c);
+            outline: 4px solid #fff;
         }
 
         #toolRainbow.active {
@@ -126,17 +186,43 @@
             outline: 4px solid #fff;
         }
 
-        .nav {
+        .nav-row {
             display: flex;
-            gap: clamp(6px, 1vh, 10px);
+            gap: clamp(8px, 1vh, 12px);
+            margin-top: clamp(6px, 1vh, 10px);
         }
+
+        .nav-btn {
+            flex: 1;
+            max-width: 80px;
+            height: clamp(46px, 7vh, 60px);
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(160deg, #a18cd1, #8ec5fc);
+            color: #fff;
+            font-size: clamp(18px, 3vh, 24px);
+            font-weight: 800;
+            box-shadow: 0 5px 0 rgba(161, 140, 209, 0.35);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .nav-btn:active { transform: translateY(3px); }
 
         @media (orientation: portrait) {
             main.stage { flex-direction: column; }
-            .side { flex-direction: row; width: 100%; justify-content: center; }
-            .palette { flex-direction: row; }
-            .tools { flex-direction: row; }
+            .side { 
+                width: 100%; 
+                flex-direction: row; 
+                flex-wrap: wrap; 
+                justify-content: center; 
+                max-height: none;
+                border-radius: 20px;
+                padding: 12px;
+            }
+            .panel { width: 100%; }
             .sizes { flex-direction: row; }
+            .tools { flex-direction: row; }
             #paint { max-height: 100%; max-width: 100%; }
         }
     </style>
@@ -153,25 +239,41 @@
     </div>
 </div>
 
-<span class="pic-name" id="picName">Fish</span>
+<span class="pic-name" id="picName">Dog</span>
 
 <main class="stage">
     <div class="canvas-wrap">
         <canvas id="paint" aria-label="coloring canvas"></canvas>
     </div>
     <aside class="side">
-        <div class="palette" id="palette"></div>
-        <div class="tools">
-            <button class="tool active" id="toolFill">🪣</button>
-            <button class="tool" id="toolBrush">🖌️</button>
-            <div class="sizes" id="sizes"></div>
-            <button class="tool" id="toolRainbow">🌈</button>
-            <button class="tool" id="undoBtn">↩️</button>
-            <button class="tool" id="clearBtn">🧽</button>
+        <div class="panel">
+            <div class="panel-title">Colors</div>
+            <div class="palette" id="palette"></div>
         </div>
-        <div class="nav">
-            <button class="nav-btn" id="prevBtn">⬅️</button>
-            <button class="nav-btn" id="nextBtn">➡️</button>
+
+        <div class="panel">
+            <div class="panel-title">Brush Size</div>
+            <div class="sizes" id="sizes"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Tools</div>
+            <div class="tools">
+                <div class="tool-row">
+                    <button class="tool active" id="toolFill" title="Fill">🪣</button>
+                    <button class="tool" id="toolBrush" title="Brush">🖌️</button>
+                    <button class="tool" id="toolRainbow" title="Rainbow mode">🌈</button>
+                </div>
+                <div class="tool-row">
+                    <button class="tool" id="undoBtn" title="Undo">↩️</button>
+                    <button class="tool" id="clearBtn" title="Clear to blank">🧽</button>
+                    <button class="tool" id="resetBtn" title="Reset to blank (no image)">✨</button>
+                </div>
+            </div>
+            <div class="nav-row">
+                <button class="nav-btn" id="prevBtn" title="Previous picture">⬅️</button>
+                <button class="nav-btn" id="nextBtn" title="Next picture">➡️</button>
+            </div>
         </div>
     </aside>
 </main>
