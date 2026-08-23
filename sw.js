@@ -1,4 +1,4 @@
-const CACHE = "tot-play-v6";
+const CACHE = "tot-play-v7";
 const ASSETS = [
     "./",
     "index.html",
@@ -29,7 +29,17 @@ const ASSETS = [
     "img/fish.png",
     "img/starfish.png",
     "img/seahorse.png",
-    "img/sealife.png"
+    "img/sealife.png",
+    "img/silhouettes/dog-silhouette.png",
+    "img/silhouettes/octopus-silhouette.png",
+    "img/silhouettes/elephant-silhouette.png",
+    "img/silhouettes/bird-silhouette.png",
+    "img/silhouettes/aircraft-silhouette.png",
+    "img/silhouettes/dolphin-silhouette.png",
+    "img/silhouettes/fish-silhouette.png",
+    "img/silhouettes/starfish-silhouette.png",
+    "img/silhouettes/seahorse-silhouette.png",
+    "img/silhouettes/sealife-silhouette.png"
 ];
 
 self.addEventListener("install", e => {

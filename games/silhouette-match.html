@@ -13,14 +13,14 @@
         .topbar { z-index: 20; }
         main.stage { padding: clamp(10px, 2vh, 20px); gap: clamp(10px, 2vh, 16px); }
         .silhouette-row { display: flex; justify-content: center; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; }
-        .silhouette-slot { position: relative; width: clamp(100px, 18vw, 140px); height: clamp(100px, 18vw, 140px); border-radius: 20px; background: rgba(255,255,255,0.2); border: 4px dashed rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s, transform 0.1s; }
+        .silhouette-slot { position: relative; width: clamp(110px, 20vw, 160px); height: clamp(110px, 20vw, 160px); border-radius: 20px; background: rgba(255,255,255,0.15); border: 4px dashed rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s, transform 0.1s; }
         .silhouette-slot.correct { background: rgba(23,185,120,0.3); border-color: #17b978; border-style: solid; }
-        .silhouette-slot svg { width: 80%; height: 80%; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.1)); }
+        .silhouette-slot img { width: 85%; height: 85%; object-fit: contain; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.1)); }
         .pieces-row { display: flex; justify-content: center; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; margin-top: clamp(10px, 2vh, 20px); }
-        .piece { position: relative; width: clamp(100px, 18vw, 140px); height: clamp(100px, 18vw, 140px); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; transition: transform 0.2s, box-shadow 0.2s; z-index: 10; }
+        .piece { position: relative; width: clamp(110px, 20vw, 160px); height: clamp(110px, 20vw, 160px); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; transition: transform 0.2s, box-shadow 0.2s; z-index: 10; }
         .piece:active { cursor: grabbing; }
-        .piece.dragging { transform: scale(1.15); box-shadow: 0 16px 0 rgba(36,49,94,0.25); z-index: 100; opacity: 0.9; }
-        .piece svg { width: 70%; height: 70%; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.1)); }
+        .piece.dragging { transform: scale(1.15); box-shadow: 0 16px 0 rgba(36,49,94,0.25); z-index: 100; opacity: 0.95; }
+        .piece img { width: 85%; height: 85%; object-fit: contain; pointer-events: none; }
         .piece.placed { cursor: default; pointer-events: none; }
         .hint-text { text-align: center; font-size: clamp(1rem, 3vh, 1.3rem); font-weight: 700; color: rgba(255,255,255,0.9); text-shadow: 0 2px 0 rgba(36,49,94,0.25); }
     </style>
@@ -45,18 +45,16 @@
 <script src="../js/page-init.js"></script>
 <script>
 const ITEMS = [
-    { name: "Car", emoji: "🚗", svg: `<svg viewBox="0 0 100 100"><path d="M10 60 L10 45 Q10 35 20 35 L40 35 Q45 35 45 40 L45 55 L55 55 L55 35 Q65 35 70 35 L80 35 Q90 35 90 45 L90 60 Q90 70 80 75 L20 75 Q10 75 10 60 Z" fill="currentColor"/><circle cx="25" cy="70" r="10" fill="#222"/><circle cx="75" cy="70" r="10" fill="#222"/></svg>` },
-    { name: "Banana", emoji: "🍌", svg: `<svg viewBox="0 0 100 100"><path d="M20 50 Q25 20 50 15 Q75 20 80 50 Q75 80 50 85 Q25 80 20 50 Z" fill="currentColor"/><path d="M30 40 Q45 35 50 45 Q55 55 60 60" fill="none" stroke="#f5e04b" stroke-width="3" stroke-linecap="round"/></svg>` },
-    { name: "Bear", emoji: "🐻", svg: `<svg viewBox="0 0 100 100"><circle cx="50" cy="65" r="28" fill="currentColor"/><circle cx="30" cy="45" r="15" fill="currentColor"/><circle cx="70" cy="45" r="15" fill="currentColor"/><circle cx="35" cy="58" r="3" fill="#222"/><circle cx="65" cy="58" r="3" fill="#222"/><ellipse cx="50" cy="70" rx="12" ry="6" fill="#f5d0c0"/></svg>` },
-    { name: "Apple", emoji: "🍎", svg: `<svg viewBox="0 0 100 100"><path d="M50 20 Q30 25 20 45 Q20 70 50 85 Q80 70 80 45 Q80 25 50 20 Z" fill="currentColor"/><path d="M50 20 Q50 10 60 20" fill="none" stroke="#4a2c0a" stroke-width="4" stroke-linecap="round"/></svg>` },
-    { name: "Cat", emoji: "🐱", svg: `<svg viewBox="0 0 100 100"><circle cx="50" cy="60" r="28" fill="currentColor"/><polygon points="30,35 38,35 42,22 46,35 54,35 58,22 62,35 70,35" fill="currentColor"/><circle cx="38" cy="55" r="4" fill="#222"/><circle cx="62" cy="55" r="4" fill="#222"/><path d="M50 65 Q50 60 55 60" fill="none" stroke="#222" stroke-width="2"/></svg>` },
-    { name: "House", emoji: "🏠", svg: `<svg viewBox="0 0 100 100"><path d="M15 70 L50 20 L85 70 Z" fill="currentColor"/><rect x="20" y="70" width="60" height="30" fill="currentColor"/><rect x="40" y="80" width="20" height="20" fill="#f5d0c0"/><rect x="30" y="75" width="15" height="15" fill="#87ceeb"/><rect x="55" y="75" width="15" height="15" fill="#87ceeb"/></svg>` },
-    { name: "Tree", emoji: "🌳", svg: `<svg viewBox="0 0 100 100"><rect x="45" y="55" width="10" height="45" fill="#4a2c0a"/><circle cx="50" cy="40" r="28" fill="currentColor"/></svg>` },
-    { name: "Fish", emoji: "🐟", svg: `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="35" ry="18" fill="currentColor"/><polygon points="90,50 100,35 100,65" fill="currentColor"/><circle cx="30" cy="45" r="4" fill="#fff"/><circle cx="31" cy="45" r="1.5" fill="#222"/></svg>` },
-    { name: "Sun", emoji: "☀️", svg: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="25" fill="currentColor"/><g stroke="currentColor" stroke-width="4" stroke-linecap="round"><line x1="50" y1="5" x2="50" y2="15"/><line x1="50" y1="85" x2="50" y2="95"/><line x1="5" y1="50" x2="15" y2="50"/><line x1="85" y1="50" x2="95" y2="50"/><line x1="15" y1="15" x2="23" y2="23"/><line x1="77" y1="77" x2="85" y2="85"/><line x1="15" y1="85" x2="23" y2="77"/><line x1="77" y1="23" x2="85" y2="15"/></g></svg>` },
-    { name: "Star", emoji: "⭐", svg: `<svg viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,55 75,85 50,65 25,85 33,55 5,35 39,35" fill="currentColor"/></svg>` },
-    { name: "Ball", emoji: "⚽", svg: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#fff" stroke="#222" stroke-width="3"/><ellipse cx="50" cy="50" rx="18" ry="12" fill="none" stroke="#222" stroke-width="2"/><ellipse cx="50" cy="50" rx="12" ry="18" fill="none" stroke="#222" stroke-width="2"/></svg>` },
-    { name: "Cupcake", emoji: "🧁", svg: `<svg viewBox="0 0 100 100"><path d="M25 70 L30 45 L70 45 L75 70 Z" fill="#c9a66b"/><path d="M25 70 Q45 40 50 30 Q55 40 75 70" fill="#ffb6c1"/><circle cx="50" cy="28" r="8" fill="#ff6b6b"/></svg>` }
+    { name: "Dog", img: "../img/dog.png", sil: "../img/silhouettes/dog-silhouette.png" },
+    { name: "Octopus", img: "../img/octopus.png", sil: "../img/silhouettes/octopus-silhouette.png" },
+    { name: "Elephant", img: "../img/elephant.png", sil: "../img/silhouettes/elephant-silhouette.png" },
+    { name: "Bird", img: "../img/bird.png", sil: "../img/silhouettes/bird-silhouette.png" },
+    { name: "Airplane", img: "../img/aircraft.png", sil: "../img/silhouettes/aircraft-silhouette.png" },
+    { name: "Dolphin", img: "../img/dolphin.png", sil: "../img/silhouettes/dolphin-silhouette.png" },
+    { name: "Fish", img: "../img/fish.png", sil: "../img/silhouettes/fish-silhouette.png" },
+    { name: "Starfish", img: "../img/starfish.png", sil: "../img/silhouettes/starfish-silhouette.png" },
+    { name: "Seahorse", img: "../img/seahorse.png", sil: "../img/silhouettes/seahorse-silhouette.png" },
+    { name: "Sealife", img: "../img/sealife.png", sil: "../img/silhouettes/sealife-silhouette.png" }
 ];
 
 let currentSet = [];
@@ -84,7 +82,10 @@ function newRound() {
         const slot = document.createElement("div");
         slot.className = "silhouette-slot";
         slot.dataset.name = item.name;
-        slot.innerHTML = item.svg.replace('fill="currentColor"', 'fill="#444"');
+        const img = document.createElement("img");
+        img.src = item.sil;
+        img.alt = item.name;
+        slot.appendChild(img);
         silhouettesEl.appendChild(slot);
     });
 
@@ -93,7 +94,10 @@ function newRound() {
         const piece = document.createElement("div");
         piece.className = "piece";
         piece.dataset.name = item.name;
-        piece.innerHTML = item.svg;
+        const img = document.createElement("img");
+        img.src = item.img;
+        img.alt = item.name;
+        piece.appendChild(img);
         piece.addEventListener("pointerdown", onDragStart);
         piece.addEventListener("pointermove", onDragMove);
         piece.addEventListener("pointerup", onDragEnd);
@@ -178,8 +182,13 @@ function snapToSlot(piece, slot) {
     piece.style.margin = "";
     slot.appendChild(piece);
     slot.classList.add("correct");
+    // Replace silhouette with colored image
+    const img = slot.querySelector("img");
+    const item = ITEMS.find(i => i.name === piece.dataset.name);
+    if (img && item) {
+        img.src = item.img;
+    }
     TotAudio.match();
-    speak(piece.dataset.name);
     confetti(1500);
     checkRoundComplete();
 }
@@ -192,7 +201,7 @@ function returnToStart(piece) {
     piece.style.width = "";
     piece.style.height = "";
     piece.style.margin = "";
-    piece.style.transition = "transform 0.3s ease";
+    piece.style.transition = "transform 0.3s ease, top 0.3s ease, left 0.3s ease";
     piece.style.transform = "scale(1)";
     setTimeout(() => { piece.style.transition = ""; }, 300);
     document.getElementById("pieces").appendChild(piece);
@@ -205,19 +214,8 @@ function checkRoundComplete() {
         setTimeout(() => {
             TotAudio.win();
             confetti(2000);
-            speak("Great job!");
             setTimeout(newRound, 1500);
         }, 500);
-    }
-}
-
-function speak(text) {
-    if (!TotAudio.isMuted() && "speechSynthesis" in window) {
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.9;
-        u.pitch = 1.1;
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
     }
 }
 
