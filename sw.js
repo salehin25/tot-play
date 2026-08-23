@@ -1,4 +1,4 @@
-const CACHE = "tot-play-v2";
+const CACHE = "tot-play-v3";
 const ASSETS = [
     "./",
     "index.html",
@@ -14,7 +14,17 @@ const ASSETS = [
     "js/coloring-data.js",
     "manifest.webmanifest",
     "icons/icon-192.png",
-    "icons/icon-512.png"
+    "icons/icon-512.png",
+    "img/dog.png",
+    "img/octopus.png",
+    "img/elephant.png",
+    "img/bird.png",
+    "img/aircraft.png",
+    "img/dolphin.png",
+    "img/fish.png",
+    "img/starfish.png",
+    "img/seahorse.png",
+    "img/sealife.png"
 ];
 
 self.addEventListener("install", e => {

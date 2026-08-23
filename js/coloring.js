@@ -3,6 +3,11 @@
         "#e4572e", "#ff9f1c", "#ffc93c", "#8ac926", "#17b978",
         "#209ce7", "#4361ee", "#9b5de5", "#f15bb5", "#8d5524"
     ];
+    const BRUSH_SIZES = [
+        { label: "S", width: 16 },
+        { label: "M", width: 38 },
+        { label: "L", width: 66 }
+    ];
     const W = 900, H = 640;
 
     const canvas = document.getElementById("paint");
@@ -12,6 +17,8 @@
 
     let currentColor = PALETTE[0];
     let mode = "fill";
+    let rainbow = false;
+    let brushSize = BRUSH_SIZES[1].width;
     let pictureIndex = 0;
     let drawing = false;
     const undoStack = [];
@@ -19,6 +26,10 @@
     function snapshot() {
         undoStack.push(ctx.getImageData(0, 0, W, H));
         if (undoStack.length > 20) undoStack.shift();
+    }
+
+    function randomColor() {
+        return PALETTE[Math.floor(Math.random() * PALETTE.length)];
     }
 
     function hexToRgb(hex) {
@@ -75,19 +86,21 @@
         TotAudio.tap();
         const p = canvasPos(e);
         snapshot();
+        const color = rainbow ? randomColor() : currentColor;
         if (mode === "fill") {
-            floodFill(p.x, p.y, currentColor);
+            floodFill(p.x, p.y, color);
         } else {
             drawing = true;
             canvas.setPointerCapture(e.pointerId);
-            ctx.strokeStyle = currentColor;
-            ctx.fillStyle = currentColor;
-            ctx.lineWidth = 44;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = brushSize;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
-            ctx.ellipse(p.x, p.y, 22, 22, 0, 0, Math.PI * 2);
+            const r = brushSize / 2;
+            ctx.ellipse(p.x, p.y, r, r, 0, 0, Math.PI * 2);
             ctx.fill();
         }
     });
@@ -104,13 +117,22 @@
         canvas.addEventListener(ev, () => { drawing = false; })
     );
 
+    function fitImage(img) {
+        const scale = Math.min((W * 0.96) / img.width, (H * 0.96) / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+    }
+
     function loadPicture(index) {
         pictureIndex = (index + COLORING_PICTURES.length) % COLORING_PICTURES.length;
         undoStack.length = 0;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, W, H);
-        COLORING_PICTURES[pictureIndex].draw(ctx);
         document.getElementById("picName").textContent = COLORING_PICTURES[pictureIndex].name;
+        const img = new Image();
+        img.onload = () => fitImage(img);
+        img.src = COLORING_PICTURES[pictureIndex].src;
     }
 
     function buildPalette() {
@@ -130,9 +152,29 @@
         });
     }
 
+    function buildSizes() {
+        const wrap = document.getElementById("sizes");
+        BRUSH_SIZES.forEach((s, i) => {
+            const b = document.createElement("button");
+            b.className = "tool size-btn" + (s.width === brushSize ? " active" : "");
+            b.setAttribute("aria-label", "brush size " + s.label);
+            const dot = document.createElement("span");
+            dot.className = "size-dot";
+            dot.style.width = dot.style.height = (8 + i * 7) + "px";
+            b.appendChild(dot);
+            b.addEventListener("click", () => {
+                brushSize = s.width;
+                document.querySelectorAll(".size-btn").forEach(x => x.classList.remove("active"));
+                b.classList.add("active");
+                TotAudio.pick();
+            });
+            wrap.appendChild(b);
+        });
+    }
+
     function setMode(m, btn) {
         mode = m;
-        document.querySelectorAll(".tool").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll("#toolFill, #toolBrush").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         canvas.style.cursor = m === "brush" ? "crosshair" : "pointer";
         TotAudio.pick();
@@ -140,6 +182,12 @@
 
     document.getElementById("toolFill").addEventListener("click", e => setMode("fill", e.currentTarget));
     document.getElementById("toolBrush").addEventListener("click", e => setMode("brush", e.currentTarget));
+
+    document.getElementById("toolRainbow").addEventListener("click", e => {
+        rainbow = !rainbow;
+        e.currentTarget.classList.toggle("active", rainbow);
+        TotAudio.pick();
+    });
 
     document.getElementById("undoBtn").addEventListener("click", () => {
         const last = undoStack.pop();
@@ -160,6 +208,6 @@
     document.getElementById("nextBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex + 1); });
 
     buildPalette();
-    setMode("fill", document.getElementById("toolFill"));
+    buildSizes();
     loadPicture(0);
 })();

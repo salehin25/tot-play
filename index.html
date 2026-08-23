@@ -25,7 +25,7 @@
         }
 
         .logo {
-            font-size: clamp(2.4rem, 9dvh, 4.6rem);
+            font-size: clamp(2.4rem, 9vh, 4.6rem);
             font-weight: 800;
             color: #fff;
             text-shadow: 0 4px 0 rgba(36, 49, 94, 0.3);
@@ -44,7 +44,7 @@
             color: rgba(255, 255, 255, 0.95);
             font-weight: 700;
             margin-top: 4px;
-            font-size: clamp(1rem, 3dvh, 1.5rem);
+            font-size: clamp(1rem, 3vh, 1.5rem);
             text-shadow: 0 2px 0 rgba(36, 49, 94, 0.25);
         }
 
@@ -55,7 +55,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: clamp(14px, 3dvh, 30px);
+            gap: clamp(14px, 3vh, 30px);
             padding: max(12px, env(safe-area-inset-top)) 16px calc(max(16px, env(safe-area-inset-bottom)) + 8px);
             z-index: 5;
         }
@@ -68,21 +68,22 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1.2dvh;
+            gap: 1.2vh;
             font-family: inherit;
-            font-size: clamp(1.3rem, 3.6dvh, 2.1rem);
+            font-size: clamp(1.3rem, 3.6vh, 2.1rem);
             font-weight: 800;
             color: #fff;
             text-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
             cursor: pointer;
             transition: transform 0.12s;
             text-decoration: none;
+            min-height: 0;
         }
 
         .tile:active { transform: scale(0.93); }
 
         .tile .emoji {
-            font-size: clamp(3.4rem, 13dvh, 6.5rem);
+            font-size: clamp(3.4rem, 13vh, 6.5rem);
             filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.15));
         }
 
