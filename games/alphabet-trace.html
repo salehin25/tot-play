@@ -14,6 +14,8 @@
         main.stage { padding: 0; gap: 0; }
         canvas#traceCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
         .letter-info { position: fixed; top: max(60px, env(safe-area-inset-top) + 60px); left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); padding: 8px 24px; border-radius: 999px; font-weight: 800; font-size: clamp(1.2rem, 4vh, 2rem); color: var(--ink); z-index: 10; box-shadow: var(--shadow); }
+        .progress-bar { position: fixed; bottom: max(20px, env(safe-area-inset-bottom) + 20px); left: 50%; transform: translateX(-50%); width: 80%; max-width: 400px; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; z-index: 10; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #209ce7, #17b978); border-radius: 4px; transition: width 0.3s ease; width: 0%; }
     </style>
 </head>
 <body>
@@ -27,6 +29,7 @@
     </div>
 </div>
 <div class="letter-info" id="letterInfo">A</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 <main class="stage">
     <canvas id="traceCanvas"></canvas>
 </main>
@@ -35,53 +38,18 @@
 <script src="../js/page-init.js"></script>
 <script>
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const WORDS = {
-    A: "Apple", B: "Ball", C: "Cat", D: "Dog", E: "Elephant", F: "Fish",
-    G: "Giraffe", H: "Hat", I: "Ice cream", J: "Jelly", K: "Kite", L: "Lion",
-    M: "Moon", N: "Nest", O: "Octopus", P: "Penguin", Q: "Queen", R: "Rabbit",
-    S: "Sun", T: "Turtle", U: "Umbrella", V: "Violin", W: "Whale", X: "Xylophone",
-    Y: "Yacht", Z: "Zebra"
-};
-const COLORS = ["#e4572e","#ff9f1c","#ffc93c","#8ac926","#17b978","#209ce7","#4361ee","#9b5de5","#f15bb5","#8d5524"];
+const WORDS = { A:"Apple", B:"Ball", C:"Cat", D:"Dog", E:"Elephant", F:"Fish", G:"Giraffe", H:"Hat", I:"Ice cream", J:"Jelly", K:"Kite", L:"Lion", M:"Moon", N:"Nest", O:"Octopus", P:"Penguin", Q:"Queen", R:"Rabbit", S:"Sun", T:"Turtle", U:"Umbrella", V:"Violin", W:"Whale", X:"Xylophone", Y:"Yacht", Z:"Zebra" };
+const STROKE_COLORS = ["#e4572e","#ff9f1c","#ffc93c","#8ac926","#17b978","#209ce7","#4361ee","#9b5de5","#f15bb5","#8d5524"];
 
 const canvas = document.getElementById("traceCanvas");
 const ctx = canvas.getContext("2d");
 let dpr = window.devicePixelRatio || 1;
 let currentLetterIdx = 0;
-let currentPathIdx = 0;
+let currentStrokeIdx = 0;
 let isDrawing = false;
 let guideProgress = 0;
 let guideAnimId = null;
-let strokesCompleted = 0;
-
-const LETTER_PATHS = {
-    A: [[[0.2,0.85],[0.5,0.15]], [[0.5,0.15],[0.8,0.85]], [[0.35,0.5],[0.65,0.5]]],
-    B: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.65,0.15],[0.65,0.35],[0.35,0.35],[0.35,0.5]], [[0.35,0.5],[0.65,0.5],[0.65,0.65],[0.35,0.65],[0.35,0.85]], [[0.65,0.85],[0.2,0.85]]],
-    C: [[[0.8,0.2],[0.5,0.1],[0.2,0.2],[0.15,0.5],[0.2,0.8],[0.5,0.9],[0.8,0.8]]],
-    D: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.7,0.15],[0.8,0.3],[0.8,0.7],[0.7,0.85],[0.2,0.85]]],
-    E: [[[0.8,0.15],[0.2,0.15]], [[0.5,0.5],[0.2,0.5]], [[0.8,0.85],[0.2,0.85]]],
-    F: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.8,0.15]], [[0.2,0.5],[0.65,0.5]]],
-    G: [[[0.8,0.2],[0.5,0.1],[0.2,0.2],[0.15,0.5],[0.2,0.8],[0.5,0.9],[0.8,0.8],[0.8,0.55],[0.45,0.55]]],
-    H: [[[0.2,0.15],[0.2,0.85]], [[0.8,0.15],[0.8,0.85]], [[0.2,0.5],[0.8,0.5]]],
-    I: [[[0.5,0.15],[0.5,0.85]], [[0.2,0.15],[0.8,0.15]], [[0.2,0.85],[0.8,0.85]]],
-    J: [[[0.5,0.15],[0.5,0.7],[0.3,0.85],[0.2,0.85]], [[0.8,0.15],[0.2,0.15]]],
-    K: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.5],[0.8,0.15]], [[0.2,0.5],[0.8,0.85]]],
-    L: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.85],[0.8,0.85]]],
-    M: [[[0.2,0.85],[0.2,0.15]], [[0.2,0.15],[0.5,0.85]], [[0.5,0.85],[0.8,0.15]], [[0.8,0.15],[0.8,0.85]]],
-    N: [[[0.2,0.85],[0.2,0.15]], [[0.2,0.15],[0.8,0.85]], [[0.8,0.85],[0.8,0.15]]],
-    O: [[[0.5,0.15],[0.25,0.2],[0.15,0.5],[0.25,0.8],[0.5,0.85],[0.75,0.8],[0.85,0.5],[0.75,0.2],[0.5,0.15]]],
-    P: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.7,0.15],[0.8,0.3],[0.7,0.5],[0.2,0.5]]],
-    Q: [[[0.5,0.15],[0.25,0.2],[0.15,0.5],[0.25,0.8],[0.5,0.85],[0.75,0.8],[0.85,0.5],[0.75,0.2],[0.5,0.15]], [[0.55,0.55],[0.8,0.85]]],
-    R: [[[0.2,0.15],[0.2,0.85]], [[0.2,0.15],[0.7,0.15],[0.8,0.3],[0.7,0.5],[0.2,0.5]], [[0.3,0.5],[0.8,0.85]]],
-    S: [[[0.8,0.2],[0.5,0.1],[0.2,0.2],[0.15,0.5],[0.2,0.8],[0.5,0.9],[0.8,0.8]]],
-    T: [[[0.5,0.15],[0.5,0.85]], [[0.15,0.15],[0.85,0.15]]],
-    U: [[[0.2,0.15],[0.2,0.7],[0.3,0.85],[0.7,0.85],[0.8,0.7],[0.8,0.15]]],
-    V: [[[0.2,0.15],[0.5,0.85]], [[0.8,0.15],[0.5,0.85]]],
-    W: [[[0.2,0.15],[0.35,0.85]], [[0.35,0.85],[0.5,0.35]], [[0.5,0.35],[0.65,0.85]], [[0.65,0.85],[0.8,0.15]]],
-    X: [[[0.2,0.15],[0.8,0.85]], [[0.8,0.15],[0.2,0.85]]],
-    Y: [[[0.2,0.15],[0.5,0.5]], [[0.8,0.15],[0.5,0.5]], [[0.5,0.5],[0.5,0.85]]],
-    Z: [[[0.15,0.15],[0.85,0.15]], [[0.85,0.15],[0.15,0.85]], [[0.15,0.85],[0.85,0.85]]]
-};
+let completedStrokes = [];
 
 function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -92,58 +60,297 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-function drawLetterPaths(letter) {
-    const paths = LETTER_PATHS[letter] || [];
+// Natural letter paths using bezier curves - each stroke is an array of commands
+// Commands: M=move, L=line, Q=quadratic bezier, C=cubic bezier
+const LETTER_STROKES = {
+    A: [
+        { type: 'M', points: [0.5, 0.95] },
+        { type: 'Q', points: [0.5, 0.95, 0.15, 0.5, 0.5, 0.05] }, // left curve up
+        { type: 'Q', points: [0.5, 0.05, 0.85, 0.5, 0.5, 0.95] }, // right curve down
+        { type: 'M', points: [0.3, 0.5] },
+        { type: 'L', points: [0.7, 0.5] } // crossbar
+    ],
+    B: [
+        { type: 'M', points: [0.25, 0.05] },
+        { type: 'L', points: [0.25, 0.95] }, // stem
+        { type: 'M', points: [0.25, 0.05] },
+        { type: 'Q', points: [0.25, 0.05, 0.65, 0.05, 0.75, 0.25] }, // top curve
+        { type: 'Q', points: [0.75, 0.25, 0.75, 0.5, 0.25, 0.5] }, // middle curve
+        { type: 'M', points: [0.25, 0.5] },
+        { type: 'Q', points: [0.25, 0.5, 0.65, 0.5, 0.75, 0.75] }, // bottom curve
+        { type: 'Q', points: [0.75, 0.75, 0.75, 0.95, 0.25, 0.95] }
+    ],
+    C: [
+        { type: 'M', points: [0.85, 0.15] },
+        { type: 'Q', points: [0.85, 0.15, 0.55, 0.05, 0.25, 0.15] },
+        { type: 'Q', points: [0.25, 0.15, 0.1, 0.5, 0.25, 0.85] },
+        { type: 'Q', points: [0.25, 0.85, 0.55, 0.95, 0.85, 0.85] }
+    ],
+    D: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // stem
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'Q', points: [0.2, 0.08, 0.65, 0.08, 0.85, 0.35] },
+        { type: 'Q', points: [0.85, 0.35, 0.85, 0.65, 0.65, 0.92] },
+        { type: 'Q', points: [0.65, 0.92, 0.2, 0.92, 0.2, 0.65] },
+        { type: 'Q', points: [0.2, 0.65, 0.2, 0.35, 0.65, 0.08] }
+    ],
+    E: [
+        { type: 'M', points: [0.75, 0.08] },
+        { type: 'L', points: [0.2, 0.08] }, // top
+        { type: 'M', points: [0.75, 0.5] },
+        { type: 'L', points: [0.2, 0.5] }, // middle
+        { type: 'M', points: [0.75, 0.92] },
+        { type: 'L', points: [0.2, 0.92] }, // bottom
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] } // stem
+    ],
+    F: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // stem
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.8, 0.08] }, // top
+        { type: 'M', points: [0.2, 0.5] },
+        { type: 'L', points: [0.65, 0.5] } // middle
+    ],
+    G: [
+        { type: 'M', points: [0.75, 0.15] },
+        { type: 'Q', points: [0.75, 0.15, 0.55, 0.05, 0.25, 0.15] },
+        { type: 'Q', points: [0.25, 0.15, 0.1, 0.5, 0.25, 0.85] },
+        { type: 'Q', points: [0.25, 0.85, 0.55, 0.95, 0.75, 0.85] },
+        { type: 'Q', points: [0.75, 0.85, 0.85, 0.65, 0.55, 0.55] },
+        { type: 'L', points: [0.75, 0.55] }
+    ],
+    H: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // left stem
+        { type: 'M', points: [0.8, 0.08] },
+        { type: 'L', points: [0.8, 0.92] }, // right stem
+        { type: 'M', points: [0.2, 0.5] },
+        { type: 'L', points: [0.8, 0.5] } // crossbar
+    ],
+    I: [
+        { type: 'M', points: [0.5, 0.08] },
+        { type: 'L', points: [0.5, 0.92] }, // stem
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.8, 0.08] }, // top
+        { type: 'M', points: [0.2, 0.92] },
+        { type: 'L', points: [0.8, 0.92] } // bottom
+    ],
+    J: [
+        { type: 'M', points: [0.65, 0.08] },
+        { type: 'L', points: [0.3, 0.08] }, // top
+        { type: 'M', points: [0.5, 0.08] },
+        { type: 'Q', points: [0.5, 0.08, 0.5, 0.6, 0.3, 0.85] },
+        { type: 'L', points: [0.2, 0.85] }
+    ],
+    K: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // stem
+        { type: 'M', points: [0.2, 0.5] },
+        { type: 'L', points: [0.8, 0.08] }, // upper arm
+        { type: 'M', points: [0.2, 0.5] },
+        { type: 'L', points: [0.8, 0.92] } // lower arm
+    ],
+    L: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // stem
+        { type: 'L', points: [0.8, 0.92] } // base
+    ],
+    M: [
+        { type: 'M', points: [0.2, 0.92] },
+        { type: 'L', points: [0.2, 0.08] }, // left stem
+        { type: 'L', points: [0.5, 0.85] }, // peak down
+        { type: 'L', points: [0.8, 0.08] }, // peak up
+        { type: 'L', points: [0.8, 0.92] } // right stem
+    ],
+    N: [
+        { type: 'M', points: [0.2, 0.92] },
+        { type: 'L', points: [0.2, 0.08] }, // left stem
+        { type: 'L', points: [0.8, 0.92] }, // diagonal
+        { type: 'L', points: [0.8, 0.08] } // right stem
+    ],
+    O: [
+        { type: 'M', points: [0.5, 0.08] },
+        { type: 'Q', points: [0.5, 0.08, 0.2, 0.08, 0.15, 0.5] },
+        { type: 'Q', points: [0.15, 0.5, 0.2, 0.92, 0.5, 0.92] },
+        { type: 'Q', points: [0.5, 0.92, 0.8, 0.92, 0.85, 0.5] },
+        { type: 'Q', points: [0.85, 0.5, 0.8, 0.08, 0.5, 0.08] }
+    ],
+    P: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // stem
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'Q', points: [0.2, 0.08, 0.6, 0.08, 0.75, 0.25] },
+        { type: 'Q', points: [0.75, 0.25, 0.75, 0.5, 0.2, 0.5] }
+    ],
+    Q: [
+        { type: 'M', points: [0.5, 0.08] },
+        { type: 'Q', points: [0.5, 0.08, 0.2, 0.08, 0.15, 0.5] },
+        { type: 'Q', points: [0.15, 0.5, 0.2, 0.92, 0.5, 0.92] },
+        { type: 'Q', points: [0.5, 0.92, 0.8, 0.92, 0.85, 0.5] },
+        { type: 'Q', points: [0.85, 0.5, 0.8, 0.08, 0.5, 0.08] },
+        { type: 'M', points: [0.55, 0.6] },
+        { type: 'L', points: [0.85, 0.92] } // tail
+    ],
+    R: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }, // stem
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'Q', points: [0.2, 0.08, 0.6, 0.08, 0.75, 0.25] },
+        { type: 'Q', points: [0.75, 0.25, 0.75, 0.5, 0.2, 0.5] }, // loop
+        { type: 'M', points: [0.3, 0.5] },
+        { type: 'L', points: [0.8, 0.92] } // leg
+    ],
+    S: [
+        { type: 'M', points: [0.75, 0.15] },
+        { type: 'Q', points: [0.75, 0.15, 0.5, 0.08, 0.25, 0.15] },
+        { type: 'Q', points: [0.25, 0.15, 0.1, 0.5, 0.25, 0.85] },
+        { type: 'Q', points: [0.25, 0.85, 0.5, 0.92, 0.75, 0.85] }
+    ],
+    T: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.8, 0.08] }, // top
+        { type: 'M', points: [0.5, 0.08] },
+        { type: 'L', points: [0.5, 0.92] } // stem
+    ],
+    U: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.2, 0.65] },
+        { type: 'Q', points: [0.2, 0.65, 0.2, 0.92, 0.5, 0.92] },
+        { type: 'Q', points: [0.5, 0.92, 0.8, 0.92, 0.8, 0.65] },
+        { type: 'L', points: [0.8, 0.08] }
+    ],
+    V: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.5, 0.92] },
+        { type: 'L', points: [0.8, 0.08] }
+    ],
+    W: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.35, 0.92] },
+        { type: 'L', points: [0.5, 0.4] },
+        { type: 'L', points: [0.65, 0.92] },
+        { type: 'L', points: [0.8, 0.08] }
+    ],
+    X: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.8, 0.92] },
+        { type: 'M', points: [0.8, 0.08] },
+        { type: 'L', points: [0.2, 0.92] }
+    ],
+    Y: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.5, 0.5] },
+        { type: 'M', points: [0.8, 0.08] },
+        { type: 'L', points: [0.5, 0.5] },
+        { type: 'M', points: [0.5, 0.5] },
+        { type: 'L', points: [0.5, 0.92] }
+    ],
+    Z: [
+        { type: 'M', points: [0.2, 0.08] },
+        { type: 'L', points: [0.8, 0.08] }, // top
+        { type: 'L', points: [0.2, 0.92] }, // diagonal
+        { type: 'L', points: [0.8, 0.92] } // bottom
+    ]
+};
+
+function getCanvasPoint(normX, normY) {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     const scale = Math.min(w, h) * 0.7;
     const cx = w / 2;
     const cy = h / 2;
+    return {
+        x: cx + (normX - 0.5) * scale,
+        y: cy + (normY - 0.5) * scale
+    };
+}
 
-    ctx.strokeStyle = "rgba(25, 84, 123, 0.25)";
-    ctx.lineWidth = Math.max(6, scale * 0.06);
+function drawStrokePath(stroke) {
+    const path = new Path2D();
+    let firstPoint = true;
+    for (const cmd of stroke) {
+        const pts = cmd.points;
+        if (cmd.type === 'M') {
+            const p = getCanvasPoint(pts[0], pts[1]);
+            path.moveTo(p.x, p.y);
+        } else if (cmd.type === 'L') {
+            const p = getCanvasPoint(pts[0], pts[1]);
+            path.lineTo(p.x, p.y);
+        } else if (cmd.type === 'Q') {
+            // Q: cp1x, cp1y, x, y
+            const cp = getCanvasPoint(pts[0], pts[1]);
+            const end = getCanvasPoint(pts[2], pts[3]);
+            path.quadraticCurveTo(cp.x, cp.y, end.x, end.y);
+        }
+    }
+    return path;
+}
+
+function drawLetterGuide() {
+    const strokes = LETTER_STROKES[LETTERS[currentLetterIdx]] || [];
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+
+    ctx.strokeStyle = "rgba(25, 84, 123, 0.18)";
+    ctx.lineWidth = Math.max(8, Math.min(w, h) * 0.07);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    paths.forEach(path => {
-        ctx.beginPath();
-        ctx.moveTo(cx + (path[0][0] - 0.5) * scale, cy + (path[0][1] - 0.5) * scale);
-        for (let i = 1; i < path.length; i++) {
-            ctx.lineTo(cx + (path[i][0] - 0.5) * scale, cy + (path[i][1] - 0.5) * scale);
-        }
-        ctx.stroke();
-    });
+    for (const stroke of LETTER_STROKES[LETTERS[currentLetterIdx]] || []) {
+        const path = drawStrokePath(stroke);
+        ctx.stroke(path);
+    }
 }
 
-function drawTrail(trail, color) {
-    if (trail.length < 2) return;
+function drawCompletedStrokes() {
+    const color = STROKE_COLORS[currentLetterIdx % STROKE_COLORS.length];
     ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(8, (canvas.width / dpr) * 0.07);
+    ctx.lineWidth = Math.max(10, Math.min(canvas.width / dpr, canvas.height / dpr) * 0.08);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (let i = 0; i <= currentStrokeIdx && i < completedStrokes.length; i++) {
+        const path = drawStrokePath((LETTER_STROKES[LETTERS[currentLetterIdx]] || [])[i]);
+        ctx.stroke(path);
+    }
+}
+
+function drawCurrentTrail() {
+    if (!isDrawing || currentTrail.length < 2) return;
+    const color = STROKE_COLORS[currentLetterIdx % STROKE_COLORS.length];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(10, Math.min(canvas.width / dpr, canvas.height / dpr) * 0.08);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.globalCompositeOperation = "source-over";
     ctx.beginPath();
-    ctx.moveTo(trail[0].x, trail[0].y);
-    for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
+    ctx.moveTo(currentTrail[0].x, currentTrail[0].y);
+    for (let i = 1; i < currentTrail.length; i++) {
+        ctx.lineTo(currentTrail[i].x, currentTrail[i].y);
+    }
     ctx.stroke();
 }
 
-function drawGuide(letter, progress) {
-    const paths = LETTER_PATHS[letter] || [];
-    if (paths.length === 0 || currentPathIdx >= paths.length) return;
-    const path = paths[currentPathIdx];
-    const w = canvas.width / dpr;
-    const h = canvas.height / dpr;
-    const scale = Math.min(w, h) * 0.7;
-    const cx = w / 2;
-    const cy = h / 2;
+function drawGuide() {
+    const strokes = LETTER_STROKES[LETTERS[currentLetterIdx]] || [];
+    if (currentStrokeIdx >= strokes.length) return;
+    const stroke = strokes[currentStrokeIdx];
 
-    const totalLen = path.length - 1;
-    const idx = Math.min(progress * totalLen, totalLen - 0.001);
+    const totalPoints = 20;
+    const idx = Math.min(guideProgress * (totalPoints - 1), totalPoints - 1);
+    const t = idx - Math.floor(idx);
     const i = Math.floor(idx);
-    const t = idx - i;
-    const x = cx + (path[i][0] + (path[i+1][0] - path[i][0]) * t - 0.5) * scale;
-    const y = cy + (path[i][1] + (path[i+1][1] - path[i][1]) * t - 0.5) * scale;
+
+    // Sample points along the stroke path
+    const points = sampleStrokePath(stroke, totalPoints);
+    if (i >= points.length - 1) return;
+
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const x = p1.x + (p2.x - p1.x) * t;
+    const y = p1.y + (p2.y - p1.y) * t;
 
     ctx.save();
     ctx.translate(x, y);
@@ -164,8 +371,46 @@ function drawGuide(letter, progress) {
     ctx.restore();
 }
 
+function sampleStrokePath(stroke, count) {
+    const points = [];
+    const path = new Path2D();
+    let started = false;
+
+    for (const cmd of stroke) {
+        if (cmd.type === 'M') {
+            const p = getCanvasPoint(cmd.points[0], cmd.points[1]);
+            if (!started) { path.moveTo(p.x, p.y); started = true; }
+            else path.moveTo(p.x, p.y);
+        } else if (cmd.type === 'L') {
+            const p = getCanvasPoint(cmd.points[0], cmd.points[1]);
+            path.lineTo(p.x, p.y);
+        } else if (cmd.type === 'Q') {
+            const cp = getCanvasPoint(cmd.points[0], cmd.points[1]);
+            const end = getCanvasPoint(cmd.points[2], cmd.points[3]);
+            path.quadraticCurveTo(cp.x, cp.y, end.x, end.y);
+        }
+    }
+
+    // Sample points along the path
+    const length = path.getTotalLength ? path.getTotalLength() : 0;
+    // Use simpler approach - sample from commands directly
+    const samples = [];
+    for (const cmd of stroke) {
+        if (cmd.type === 'M') {
+            samples.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        } else if (cmd.type === 'L') {
+            samples.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        } else if (cmd.type === 'Q') {
+            // Add control point and end point for sampling
+            samples.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+            samples.push(getCanvasPoint(cmd.points[2], cmd.points[3]));
+        }
+    }
+    return samples.length > 0 ? samples : [{x:0,y:0}];
+}
+
 function animateGuide() {
-    guideProgress += 0.008;
+    guideProgress += 0.006;
     if (guideProgress >= 1) guideProgress = 0;
     drawFrame();
     guideAnimId = requestAnimationFrame(animateGuide);
@@ -175,43 +420,155 @@ function drawFrame() {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const letter = LETTERS[currentLetterIdx];
-    drawLetterPaths(letter);
-    if (guideProgress > 0) drawGuide(letter, guideProgress);
+    drawLetterGuide();
+    drawCompletedStrokes();
+    drawCurrentTrail();
+    if (guideProgress > 0) drawGuide();
 }
 
 function speak(text) {
     if (!TotAudio.isMuted() && "speechSynthesis" in window) {
         const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.9;
-        u.pitch = 1.1;
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
+        u.rate = 0.9; u.pitch = 1.1;
+        speechSynthesis.cancel(); speechSynthesis.speak(u);
     }
 }
 
-function checkStrokeComplete(trail, letter) {
-    if (trail.length < 5) return false;
-    const paths = LETTER_PATHS[letter] || [];
-    if (currentPathIdx >= paths.length) return false;
-    const path = paths[currentPathIdx];
-    const w = canvas.width / dpr;
-    const h = canvas.height / dpr;
-    const scale = Math.min(w, h) * 0.7;
-    const cx = w / 2;
-    const cy = h / 2;
-    const last = trail[trail.length - 1];
-    const target = path[path.length - 1];
-    const tx = cx + (target[0] - 0.5) * scale;
-    const ty = cy + (target[1] - 0.5) * scale;
-    const dist = Math.hypot(last.x - tx, last.y - ty);
-    return dist < Math.max(20, scale * 0.06);
+function updateProgress() {
+    const total = (LETTER_STROKES[LETTERS[currentLetterIdx]] || []).length;
+    const pct = total > 0 ? ((currentStrokeIdx) / total) * 100 : 0;
+    document.getElementById("progressFill").style.width = pct + "%";
+}
+
+function getStrokePathPoints(strokeIdx) {
+    const stroke = (LETTER_STROKES[LETTERS[currentLetterIdx]] || [])[strokeIdx];
+    if (!stroke) return [];
+    const points = [];
+    for (const cmd of stroke) {
+        if (cmd.type === 'M') points.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        else if (cmd.type === 'L') points.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        else if (cmd.type === 'Q') {
+            points.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+            points.push(getCanvasPoint(cmd.points[2], cmd.points[3]));
+        }
+    }
+    return points;
+}
+
+function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    if (dx === 0 && dy === 0) return Math.hypot(px - x1, py - y1);
+    const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+    const closestX = x1 + t * dx;
+    const closestY = y1 + t * dy;
+    return Math.hypot(px - closestX, py - closestY);
+}
+
+function checkStrokeComplete(trail) {
+    if (trail.length < 8) return false;
+    const strokes = LETTER_STROKES[LETTERS[currentLetterIdx]] || [];
+    if (currentStrokeIdx >= strokes.length) return false;
+
+    const stroke = strokes[currentStrokeIdx];
+    const pathPoints = [];
+    // Build a polyline approximation of the stroke
+    const path = new Path2D();
+    let started = false;
+    for (const cmd of stroke) {
+        if (cmd.type === 'M') {
+            const p = getCanvasPoint(cmd.points[0], cmd.points[1]);
+            if (!started) { path.moveTo(p.x, p.y); started = true; }
+            else path.moveTo(p.x, p.y);
+        } else if (cmd.type === 'L') {
+            const p = getCanvasPoint(cmd.points[0], cmd.points[1]);
+            path.lineTo(p.x, p.y);
+        } else if (cmd.type === 'Q') {
+            const cp = getCanvasPoint(cmd.points[0], cmd.points[1]);
+            const end = getCanvasPoint(cmd.points[2], cmd.points[3]);
+            path.quadraticCurveTo(cp.x, cp.y, end.x, end.y);
+        }
+    }
+
+    // Sample the path
+    const segCount = 30;
+    const samplePoints = [];
+    try {
+        const len = path.getTotalLength ? path.getTotalLength() : 0;
+        // Can't easily sample Path2D, use command-based sampling instead
+    } catch(e) {}
+
+    // Simpler: build polyline from commands
+    const polyPoints = [];
+    for (const cmd of stroke) {
+        if (cmd.type === 'M') polyPoints.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        else if (cmd.type === 'L') polyPoints.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        else if (cmd.type === 'Q') {
+            // Subdivide bezier
+            const steps = 10;
+            for (let s = 1; s <= steps; s++) {
+                const t = s / steps;
+                const p0 = getCanvasPoint(stroke[0].points[0], stroke[0].points[1]); // approximation
+            }
+        }
+    }
+
+    // Even simpler: check if trail end is near stroke end
+    const strokeCmds = stroke;
+    let endPt = null;
+    for (let i = strokeCmds.length - 1; i >= 0; i--) {
+        const cmd = strokeCmds[i];
+        if (cmd.type === 'L' || cmd.type === 'Q') {
+            const lastIdx = cmd.type === 'L' ? 0 : 2;
+            endPt = getCanvasPoint(cmd.points[lastIdx * 2], cmd.points[lastIdx * 2 + 1]);
+            break;
+        }
+    }
+    if (!endPt && stroke.length > 0) {
+        const first = stroke[0];
+        endPt = getCanvasPoint(first.points[0], first.points[1]);
+    }
+
+    const lastTrail = trail[trail.length - 1];
+    if (!endPt) return false;
+
+    const dist = Math.hypot(lastTrail.x - endPt.x, lastTrail.y - endPt.y);
+    const threshold = Math.max(25, Math.min(canvas.width / dpr, canvas.height / dpr) * 0.05);
+    return dist < threshold;
+}
+
+function strokeMatchesPath(trail, strokeIdx) {
+    // Check if the trail roughly follows the intended stroke path
+    const stroke = (LETTER_STROKES[LETTERS[currentLetterIdx]] || [])[strokeIdx];
+    if (!stroke || trail.length < 5) return false;
+
+    // Sample reference points along the stroke
+    const refPoints = [];
+    for (const cmd of stroke) {
+        if (cmd.type === 'M') refPoints.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        else if (cmd.type === 'L') refPoints.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+        else if (cmd.type === 'Q') {
+            refPoints.push(getCanvasPoint(cmd.points[0], cmd.points[1]));
+            refPoints.push(getCanvasPoint(cmd.points[2], cmd.points[3]));
+        }
+    }
+
+    // Check if trail points stay close to reference path
+    let closeCount = 0;
+    for (const tp of trail) {
+        let minDist = Infinity;
+        for (let i = 0; i < refPoints.length - 1; i++) {
+            const d = pointToSegmentDist(tp.x, tp.y, refPoints[i].x, refPoints[i].y, refPoints[i+1].x, refPoints[i+1].y);
+            minDist = Math.min(minDist, d);
+        }
+        if (minDist < Math.max(30, Math.min(canvas.width/dpr, canvas.height/dpr) * 0.06)) closeCount++;
+    }
+    return closeCount / trail.length > 0.5;
 }
 
 let currentTrail = [];
 
 function onPointerDown(e) {
-    if (isDrawing) return;
     isDrawing = true;
     currentTrail = [];
     const p = getCanvasPos(e);
@@ -226,26 +583,31 @@ function onPointerMove(e) {
     const p = getCanvasPos(e);
     currentTrail.push(p);
     drawFrame();
-    drawTrail(currentTrail, COLORS[currentLetterIdx % COLORS.length]);
+    drawCurrentTrail();
 }
 
 function onPointerUp(e) {
     if (!isDrawing) return;
     isDrawing = false;
-    const letter = LETTERS[currentLetterIdx];
-    if (checkStrokeComplete(currentTrail, letter)) {
+
+    const ok = strokeMatchesPath(currentTrail, currentStrokeIdx) && checkStrokeComplete(currentTrail);
+
+    if (ok) {
+        completedStrokes.push([...currentTrail]);
+        currentStrokeIdx++;
         TotAudio.match();
-        strokesCompleted++;
-        currentPathIdx++;
-        if (currentPathIdx >= (LETTER_PATHS[letter] || []).length) {
-            letterCompleted(letter);
+        updateProgress();
+
+        const strokes = LETTER_STROKES[LETTERS[currentLetterIdx]] || [];
+        if (currentStrokeIdx >= strokes.length) {
+            letterCompleted();
         } else {
             guideProgress = 0;
             animateGuide();
         }
     } else {
-        currentPathIdx = 0;
-        strokesCompleted = 0;
+        // Gentle shake feedback
+        TotAudio.wrong();
         guideProgress = 0;
         animateGuide();
     }
@@ -254,22 +616,27 @@ function onPointerUp(e) {
 
 function getCanvasPos(e) {
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
-    const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top;
-    return { x, y };
+    return {
+        x: (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left,
+        y: (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+    };
 }
 
-function letterCompleted(letter) {
+function letterCompleted() {
     cancelAnimationFrame(guideAnimId);
     TotAudio.win();
     confetti(2000);
+    const letter = LETTERS[currentLetterIdx];
     speak(`${letter} is for ${WORDS[letter]}!`);
     document.getElementById("letterInfo").textContent = `${letter} is for ${WORDS[letter]}`;
+    document.getElementById("progressFill").style.width = "100%";
+
     setTimeout(() => {
         currentLetterIdx = (currentLetterIdx + 1) % LETTERS.length;
-        currentPathIdx = 0;
-        strokesCompleted = 0;
+        currentStrokeIdx = 0;
+        completedStrokes = [];
         document.getElementById("letterInfo").textContent = LETTERS[currentLetterIdx];
+        document.getElementById("progressFill").style.width = "0%";
         guideProgress = 0;
         animateGuide();
     }, 2000);
