@@ -136,7 +136,7 @@ body {
 }
 
 .cell {
-    width: min(100%, clamp(110px, 19vh, 185px));
+    width: min(100%, clamp(343px, 59.3vh, 577px));
     min-height: 0;
     border-radius: 24px;
     border: none;
