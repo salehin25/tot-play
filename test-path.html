@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Path Extractor</title>
+<style>body{margin:0;overflow:hidden;background:#fff;}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Letter dimensions in normalized coordinates
+function getLetterPath(letter) {
+    // Render the letter large and clear, then trace it
+    const w = 400, h = 480;
+    canvas.width = w;
+    canvas.height = h;
+    
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    
+    // Draw bold, clear letter
+    ctx.font = 'bold 320px "Comic Sans MS", "Arial Rounded MT Bold", sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000';
+    ctx.fillText(letter, w/2, h/2 + 20);
+    
+    // Get pixel data
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+    
+    // Find black pixels
+    const points = [];
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
+            const r = data[idx];
+            if (r < 128) { // black pixel
+                points.push({x: x/w, y: y/h});
+            }
+        }
+    }
+    return points;
+}
+
+// Test
+const pts = getLetterPath('A');
+console.log = function(msg) {
+    document.body.innerHTML += '<pre>' + JSON.stringify(msg) + '</pre>';
+};
+console.log({count: pts.length, first: pts.slice(0,5), last: pts.slice(-5)});
+// Draw bounding box
+const minX = Math.min(...pts.map(p=>p.x));
+const maxX = Math.max(...pts.map(p=>p.x));
+const minY = Math.min(...pts.map(p=>p.y));
+const maxY = Math.max(...pts.map(p=>p.y));
+document.body.innerHTML += '<pre>Bounds: x:'+minX.toFixed(3)+'-'+maxX.toFixed(3)+' y:'+minY.toFixed(3)+'-'+maxY.toFixed(3)+'</pre>';
+</script>
+</body>
+</html>

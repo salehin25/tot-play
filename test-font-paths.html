@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c" width="500" height="600"></canvas>
+<pre id="out"></pre>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function getLetterOutline(letter, size) {
+    const w = 100, h = 120;
+    canvas.width = w;
+    canvas.height = h;
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${size}px Arial, Helvetica, sans-serif`;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+
+    // Clear and render
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillText(letter, w/2, h * 0.8);
+
+    // Get all black pixel coordinates
+    const data = ctx.getImageData(0, 0, w, h).data;
+    const points = [];
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (data[(y * w + x) * 4] < 128) {
+                points.push({x: x/w, y: y/h});
+            }
+        }
+    }
+
+    // Find the skeleton (medial axis) by finding connected components
+    // For now just find the bounding box and key points
+    if (points.length === 0) return null;
+
+    // Group by columns to find vertical strokes
+    const columns = {};
+    for (const p of points) {
+        const col = Math.round(p.x * 50);
+        if (!columns[col]) columns[col] = [];
+        columns[col].push(p.y);
+    }
+
+    return { points: points.length, columns: Object.keys(columns).length };
+}
+
+const letters = ['A', 'B', 'C', 'D'];
+const result = {};
+for (const l of letters) {
+    result[l] = getLetterOutline(l, 80);
+    console.log(l, result[l]);
+}
+</script>
+</body>
+</html>
