@@ -146,6 +146,28 @@
             outline: 4px solid #fff;
         }
 
+        .sizes-row {
+            display: flex;
+            align-items: center;
+            gap: clamp(6px, 1vh, 10px);
+            justify-content: center;
+            margin-top: clamp(6px, 1vh, 10px);
+            flex-wrap: wrap;
+        }
+
+        .sizes-label {
+            font-size: clamp(0.6rem, 1.5vh, 0.8rem);
+            font-weight: 800;
+            color: var(--ink);
+            opacity: 0.7;
+        }
+
+        .sizes-row .sizes {
+            display: flex;
+            flex-direction: row;
+            gap: clamp(6px, 1vh, 10px);
+        }
+
         .tools {
             display: flex;
             flex-direction: column;
@@ -225,7 +247,7 @@
             main.stage { flex-direction: column; }
             .side-panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
             .panel { width: 100%; }
-            .sizes { flex-direction: row; }
+            .sizes-row .sizes { flex-direction: row; }
             #paint { max-height: 100%; max-width: 100%; }
         }
     </style>
@@ -254,19 +276,18 @@
                     <button class="tool active" id="toolBrush" title="Brush">🖌️</button>
                     <button class="tool" id="toolFill" title="Fill (bucket)">🪣</button>
                     <button class="tool" id="undoBtn" title="Undo">↩️</button>
-                    <button class="tool" id="clearBtn" title="Clear (keep line art)">🧽</button>
+                    <button class="tool" id="clearBtn" title="Clear coloring">🧽</button>
                     <button class="tool" id="resetBtn" title="Reset to blank">✨</button>
+                </div>
+                <div class="sizes-row">
+                    <span class="sizes-label">Size</span>
+                    <div class="sizes" id="sizes"></div>
                 </div>
                 <div class="nav-row">
                     <button class="nav-btn" id="prevBtn" title="Previous picture">⬅️</button>
                     <button class="nav-btn" id="nextBtn" title="Next picture">➡️</button>
                 </div>
             </div>
-        </div>
-
-        <div class="panel">
-            <div class="panel-title">Brush Size</div>
-            <div class="sizes" id="sizes"></div>
         </div>
     </aside>
 
