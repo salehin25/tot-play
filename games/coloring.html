@@ -50,7 +50,7 @@
         }
 
         .side-panel {
-            width: clamp(140px, 18vw, 180px);
+            width: clamp(160px, 20vw, 220px);
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
@@ -185,6 +185,19 @@
             outline: 4px solid #fff;
         }
 
+        .rainbow-row {
+            display: flex;
+            justify-content: center;
+            margin-top: clamp(6px, 1vh, 10px);
+        }
+
+        .tool-row {
+            display: flex;
+            gap: clamp(6px, 1vh, 10px);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
         .nav-row {
             display: flex;
             gap: clamp(6px, 1vh, 10px);
@@ -238,11 +251,8 @@
             <div class="panel-title">Tools</div>
             <div class="tools">
                 <div class="tool-row">
-                    <button class="tool" id="toolBrush" title="Brush">🖌️</button>
+                    <button class="tool active" id="toolBrush" title="Brush">🖌️</button>
                     <button class="tool" id="toolFill" title="Fill (bucket)">🪣</button>
-                    <button class="tool" id="toolRainbow" title="Rainbow mode">🌈</button>
-                </div>
-                <div class="tool-row">
                     <button class="tool" id="undoBtn" title="Undo">↩️</button>
                     <button class="tool" id="clearBtn" title="Clear (keep line art)">🧽</button>
                     <button class="tool" id="resetBtn" title="Reset to blank">✨</button>
@@ -252,6 +262,11 @@
                     <button class="nav-btn" id="nextBtn" title="Next picture">➡️</button>
                 </div>
             </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Brush Size</div>
+            <div class="sizes" id="sizes"></div>
         </div>
     </aside>
 
@@ -264,11 +279,9 @@
         <div class="panel">
             <div class="panel-title">Color</div>
             <div class="palette" id="palette"></div>
-        </div>
-
-        <div class="panel">
-            <div class="panel-title">Brush Size</div>
-            <div class="sizes" id="sizes"></div>
+            <div class="rainbow-row">
+                <button class="tool" id="toolRainbow" title="Rainbow mode">🌈</button>
+            </div>
         </div>
     </aside>
 </main>
