@@ -1,16 +1,21 @@
 (function () {
     const PALETTE = [
-        "#e4572e", "#ff9f1c", "#ffc93c", "#8ac926", "#17b978",
-        "#209ce7", "#4361ee", "#9b5de5", "#f15bb5", "#8d5524"
+        "#ff3b3b", "#ff6b6b", "#e4572e", "#ff9f1c", "#ffc93c",
+        "#ffd166", "#8ac926", "#17b978", "#38d996", "#209ce7",
+        "#4d96ff", "#4361ee", "#2f6fed", "#6a4cff", "#9b5de5",
+        "#c471f5", "#f15bb5", "#ff8ad1", "#8d5524", "#718096"
     ];
     const BRUSH_SIZES = [
-        { label: "S", width: 16 },
-        { label: "M", width: 38 },
-        { label: "L", width: 66 }
+        { label: "S", dotPx: 14, width: 16 },
+        { label: "M", dotPx: 24, width: 38 },
+        { label: "L", dotPx: 40, width: 66 }
     ];
-    const W = 900, H = 640;
-    const LINE_LUM = 140;
-    const FILL_TOL = 40;
+    // Internal fixed resolution before it is drawn scaled to the canvas.
+    const W = 1800, H = 1280;
+    const LINE_LUM = 150;
+    const FILL_TOL_MIN = 32;   // seed-color match tolerance
+    const FILL_TOL_LINE = 60;  // "is an outline pixel" tolerance
+    const WALL = 3;            // enforcement width (px) left unfilled by the brush
 
     const canvas = document.getElementById("paint");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -18,7 +23,7 @@
     canvas.height = H;
 
     let currentColor = PALETTE[0];
-    let mode = "fill";
+    let mode = "brush"; // default: brush, not bucket
     let rainbow = false;
     let brushSize = BRUSH_SIZES[1].width;
     let pictureIndex = 0;
@@ -28,6 +33,8 @@
     let regionMask = null;
     let strokeData = null;
     const undoStack = [];
+
+    // ---- helpers -----------------------------------------------------------
 
     function snapshot() {
         undoStack.push(ctx.getImageData(0, 0, W, H));
@@ -50,11 +57,22 @@
         return 0.299 * r + 0.587 * g + 0.114 * b;
     }
 
+    // Signature checks: dark-and-bright, or opaque, treating a semi-transparent
+    // fringe/anti-aliased edge as NOT a live painting pixel (skippable).
+    function isLineVal(a, r, g, b) {
+        return (a >= 250 && lum(r, g, b) < LINE_LUM) || a >= 254;
+    }
+
+    function isLineAt(dataArr, i) {
+        return isLineVal(dataArr[i + 3], dataArr[i], dataArr[i + 1], dataArr[i + 2]);
+    }
+
+    // ---- line mask ---------------------------------------------------------
+
     function buildLineMask() {
-        const data = new Uint32Array(ctx.getImageData(0, 0, W, H).data.buffer);
-        for (let i = 0; i < data.length; i++) {
-            const v = data[i];
-            lineMask[i] = lum(v & 255, (v >> 8) & 255, (v >> 16) & 255) < LINE_LUM ? 1 : 0;
+        const data = new Uint8Array(ctx.getImageData(0, 0, W, H).data);
+        for (let i = 0; i < W * H; i++) {
+            lineMask[i] = isLineVal(data[i * 4 + 3], data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) ? 1 : 0;
         }
     }
 
@@ -62,72 +80,56 @@
         lineMask.fill(0);
     }
 
-    function nearestOpenPixel(cx, cy) {
-        cx |= 0; cy |= 0;
-        if (cx < 0 || cy < 0 || cx >= W || cy >= H) return null;
-        if (!lineMask[cy * W + cx]) return [cx, cy];
-        const sides = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
-        for (const [x, y] of sides) {
-            if (x < 0 || y < 0 || x >= W || y >= H) continue;
-            if (!lineMask[y * W + x]) return [x, y];
-        }
-        return null;
-    }
+    // ---- brute fill tool ---------------------------------------------------
 
+    // Strict bounded flood fill: expands only into pixels that are (a) not an
+    // outline/dark-boundary pixel and (b) within FILL_TOL_MIN of the clicked
+    // region's color, so it stops at and never crosses the outline.
     function floodFill(px, py, hex) {
-        const open = nearestOpenPixel(px, py);
-        if (!open) return;
+        if (px < 0 || py < 0 || px >= W || py >= H) return;
+        const start = py * W + px;
+        if (lineMask[start]) return;
         const img = ctx.getImageData(0, 0, W, H);
-        const data = new Uint32Array(img.data.buffer);
-        const start = open[1] * W + open[0];
-        const v0 = data[start];
-        const tr = v0 & 255, tg = (v0 >> 8) & 255, tb = (v0 >> 16) & 255;
+        const arr = img.data;
+        const tr = arr[start * 4], tg = arr[start * 4 + 1], tb = arr[start * 4 + 2];
         const fc = hexToRgb(hex);
-        const fillVal = (255 << 24) | (fc.b << 16) | (fc.g << 8) | fc.r;
-        if (v0 === fillVal) return;
-
-        const match = v => {
-            const r = v & 255, g = (v >> 8) & 255, b = (v >> 16) & 255;
-            return Math.abs(r - tr) <= FILL_TOL && Math.abs(g - tg) <= FILL_TOL && Math.abs(b - tb) <= FILL_TOL;
+        const tol = FILL_TOL_MIN * FILL_TOL_MIN;
+        const canFill = i => {
+            if (lineMask[i]) return false;
+            const dr = arr[i * 4] - tr, dg = arr[i * 4 + 1] - tg, db = arr[i * 4 + 2] - tb;
+            return dr * dr + dg * dg + db * db <= tol;
         };
-
+        if (!canFill(start)) return;
         const mask = new Uint8Array(W * H);
         const stack = [start];
         mask[start] = 1;
         while (stack.length) {
             const i = stack.pop();
             const x = i % W, y = (i / W) | 0;
-            if (x > 0 && !mask[i - 1] && !lineMask[i - 1] && match(data[i - 1])) { mask[i - 1] = 1; stack.push(i - 1); }
-            if (x < W - 1 && !mask[i + 1] && !lineMask[i + 1] && match(data[i + 1])) { mask[i + 1] = 1; stack.push(i + 1); }
-            if (y > 0 && !mask[i - W] && !lineMask[i - W] && match(data[i - W])) { mask[i - W] = 1; stack.push(i - W); }
-            if (y < H - 1 && !mask[i + W] && !lineMask[i + W] && match(data[i + W])) { mask[i + W] = 1; stack.push(i + W); }
+            if (x > 0 && !mask[i - 1] && canFill(i - 1)) { mask[i - 1] = 1; stack.push(i - 1); }
+            if (x < W - 1 && !mask[i + 1] && canFill(i + 1)) { mask[i + 1] = 1; stack.push(i + 1); }
+            if (y > 0 && !mask[i - W] && canFill(i - W)) { mask[i - W] = 1; stack.push(i - W); }
+            if (y < H - 1 && !mask[i + W] && canFill(i + W)) { mask[i + W] = 1; stack.push(i + W); }
         }
-
-        for (let pass = 0; pass < 2; pass++) {
-            const grown = mask.slice();
-            for (let i = 0; i < mask.length; i++) {
-                if (mask[i] || lineMask[i]) continue;
-                const x = i % W, y = (i / W) | 0;
-                if ((x > 0 && mask[i - 1]) || (x < W - 1 && mask[i + 1]) ||
-                    (y > 0 && mask[i - W]) || (y < H - 1 && mask[i + W])) grown[i] = 1;
-            }
-            mask.set(grown);
-        }
-
+        const fr = fc.r | 0, fg = fc.g | 0, fb = fc.b | 0;
         for (let i = 0; i < mask.length; i++) {
-            if (mask[i]) data[i] = fillVal;
+            if (mask[i]) { arr[i * 4] = fr; arr[i * 4 + 1] = fg; arr[i * 4 + 2] = fb; }
         }
         ctx.putImageData(img, 0, 0);
     }
 
+    // ---- brush tool (region-confined strokes) -------------------------------
+
     function regionFlood(sx, sy) {
         if (lineMask[sy * W + sx]) return null;
-        const data = new Uint32Array(strokeData.data.buffer);
-        const v0 = data[sy * W + sx];
-        const tr = v0 & 255, tg = (v0 >> 8) & 255, tb = (v0 >> 16) & 255;
-        const match = v => {
-            const r = v & 255, g = (v >> 8) & 255, b = (v >> 16) & 255;
-            return Math.abs(r - tr) <= FILL_TOL && Math.abs(g - tg) <= FILL_TOL && Math.abs(b - tb) <= FILL_TOL;
+        const data = new Uint8Array(ctx.getImageData(0, 0, W, H).data);
+        const v0 = (sy * W + sx) * 4;
+        const tr = data[v0], tg = data[v0 + 1], tb = data[v0 + 2];
+        const tol = FILL_TOL_MIN * FILL_TOL_MIN;
+        const match = i => {
+            if (lineMask[i]) return false;
+            const dr = data[i * 4] - tr, dg = data[i * 4 + 1] - tg, db = data[i * 4 + 2] - tb;
+            return dr * dr + dg * dg + db * db <= tol;
         };
         const mask = new Uint8Array(W * H);
         const stack = [sy * W + sx];
@@ -135,18 +137,36 @@
         while (stack.length) {
             const i = stack.pop();
             const x = i % W, y = (i / W) | 0;
-            if (x > 0 && !mask[i - 1] && !lineMask[i - 1] && match(data[i - 1])) { mask[i - 1] = 1; stack.push(i - 1); }
-            if (x < W - 1 && !mask[i + 1] && !lineMask[i + 1] && match(data[i + 1])) { mask[i + 1] = 1; stack.push(i + 1); }
-            if (y > 0 && !mask[i - W] && !lineMask[i - W] && match(data[i - W])) { mask[i - W] = 1; stack.push(i - W); }
-            if (y < H - 1 && !mask[i + W] && !lineMask[i + W] && match(data[i + W])) { mask[i + W] = 1; stack.push(i + W); }
+            if (x > 0 && !mask[i - 1] && match(i - 1)) { mask[i - 1] = 1; stack.push(i - 1); }
+            if (x < W - 1 && !mask[i + 1] && match(i + 1)) { mask[i + 1] = 1; stack.push(i + 1); }
+            if (y > 0 && !mask[i - W] && match(i - W)) { mask[i - W] = 1; stack.push(i - W); }
+            if (y < H - 1 && !mask[i + W] && match(i + W)) { mask[i + W] = 1; stack.push(i + W); }
         }
         return mask;
     }
 
+    // Erode the region mask by `r` pixels so painted strokes never reach the
+    // centre of an outline, keeping each enclosing box cleanly separated.
+    function erodeRegion(mask, r) {
+        if (r <= 0) return mask;
+        const out = new Uint8Array(mask);
+        let w = out;
+        for (let k = 0; k < r; k++) {
+            const next = new Uint8Array(mask);
+            for (let i = 0; i < mask.length; i++) {
+                if (!out[i]) continue;
+                const x = i % W, y = (i / W) | 0;
+                if (x <= 0 || y <= 0 || x >= W - 1 || y >= H - 1) { next[i] = 0; continue; }
+                if (out[i - 1] && out[i + 1] && out[i - W] && out[i + W]) next[i] = 1;
+            }
+            w = next; out.set(next);
+        }
+        return w;
+    }
+
     function stampCircle(cx, cy, r, hex) {
         const fc = hexToRgb(hex);
-        const fillVal = (255 << 24) | (fc.b << 16) | (fc.g << 8) | fc.r;
-        const data = new Uint32Array(strokeData.data.buffer);
+        const arr = strokeData.data;
         const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
         const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
         if (x0 > x1 || y0 > y1) return;
@@ -156,10 +176,11 @@
             for (let x = x0; x <= x1; x++) {
                 const dx = x - cx;
                 const i = y * W + x;
-                if (dx * dx + dy * dy <= r2 && regionMask[i]) data[i] = fillVal;
+                if (dx * dx + dy * dy <= r2 && regionMask[i]) {
+                    arr[i * 4] = fc.r; arr[i * 4 + 1] = fc.g; arr[i * 4 + 2] = fc.b; arr[i * 4 + 3] = 255;
+                }
             }
         }
-        ctx.putImageData(strokeData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
     function strokeSegment(x0, y0, x1, y1, r, color) {
@@ -176,8 +197,21 @@
         strokeData = ctx.getImageData(0, 0, W, H);
         regionMask = regionFlood(open[0], open[1]);
         if (!regionMask) { strokeData = null; return false; }
+        regionMask = erodeRegion(regionMask, WALL);
         stampCircle(p.x, p.y, brushSize / 2, color);
         return true;
+    }
+
+    function nearestOpenPixel(cx, cy) {
+        cx |= 0; cy |= 0;
+        if (cx < 0 || cy < 0 || cx >= W || cy >= H) return null;
+        if (!lineMask[cy * W + cx]) return [cx, cy];
+        const sides = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+        for (const [x, y] of sides) {
+            if (x < 0 || y < 0 || x >= W || y >= H) continue;
+            if (!lineMask[y * W + x]) return [x, y];
+        }
+        return null;
     }
 
     function canvasPos(e) {
@@ -187,6 +221,8 @@
             y: (e.clientY - rect.top) * (H / rect.height)
         };
     }
+
+    // ---- pointer / tool wiring ----------------------------------------------
 
     canvas.addEventListener("pointerdown", e => {
         e.preventDefault();
@@ -221,6 +257,8 @@
         })
     );
 
+    // ---- picture loading -----------------------------------------------------
+
     function fitImage(img) {
         const scale = Math.min((W * 0.96) / img.width, (H * 0.96) / img.height);
         const w = img.width * scale;
@@ -249,11 +287,13 @@
         }
     }
 
+    // ---- toolbars -------------------------------------------------------------
+
     function buildPalette() {
         const pal = document.getElementById("palette");
-        PALETTE.forEach((c, i) => {
+        PALETTE.forEach(c => {
             const sw = document.createElement("button");
-            sw.className = "swatch" + (i === 0 ? " selected" : "");
+            sw.className = "swatch" + (c === currentColor ? " selected" : "");
             sw.style.background = c;
             sw.setAttribute("aria-label", "color " + c);
             sw.addEventListener("click", () => {
@@ -267,30 +307,28 @@
     }
 
     function buildSizes() {
-        const wrapLeft = document.querySelector("#toolBrush").closest(".side-panel")?.querySelector("#sizes");
-        const wrapRight = document.querySelector(".side-panel:last-of-type #sizes");
-        const wraps = [wrapLeft, wrapRight].filter(Boolean);
-        BRUSH_SIZES.forEach((s, i) => {
-            wraps.forEach(wrap => {
-                const b = document.createElement("button");
-                b.className = "size-btn" + (s.width === brushSize ? " active" : "");
-                b.setAttribute("aria-label", "brush size " + s.label);
-                const dot = document.createElement("span");
-                dot.className = "size-dot";
-                dot.style.width = dot.style.height = (8 + i * 7) + "px";
-                const lbl = document.createElement("span");
-                lbl.className = "size-label";
-                lbl.textContent = s.label;
-                b.appendChild(dot);
-                b.appendChild(lbl);
-                b.addEventListener("click", () => {
-                    brushSize = s.width;
-                    document.querySelectorAll(".size-btn").forEach(x => x.classList.remove("active"));
-                    b.classList.add("active");
-                    TotAudio.pick();
-                });
-                wrap.appendChild(b);
+        const wrap = document.getElementById("sizes");
+        if (!wrap) return;
+        wrap.innerHTML = "";
+        BRUSH_SIZES.forEach(s => {
+            const b = document.createElement("button");
+            b.className = "size-btn" + (s.width === brushSize ? " active" : "");
+            b.setAttribute("aria-label", "brush size " + s.label);
+            const dot = document.createElement("span");
+            dot.className = "size-dot";
+            dot.style.width = dot.style.height = s.dotPx + "px";
+            const lbl = document.createElement("span");
+            lbl.className = "size-label";
+            lbl.textContent = s.label;
+            b.appendChild(dot);
+            b.appendChild(lbl);
+            b.addEventListener("click", () => {
+                brushSize = s.width;
+                document.querySelectorAll(".size-btn").forEach(x => x.classList.remove("active"));
+                b.classList.add("active");
+                TotAudio.pick();
             });
+            wrap.appendChild(b);
         });
     }
 
@@ -334,7 +372,9 @@
     document.getElementById("prevBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex - 1); });
     document.getElementById("nextBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex + 1); });
 
+    // New game defaults to the brush tool (not the bucket).
     buildPalette();
     buildSizes();
+    setMode("brush", document.getElementById("toolBrush"));
     loadPicture(0);
 })();
