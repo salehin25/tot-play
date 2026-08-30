@@ -13,14 +13,57 @@
         .topbar { z-index: 20; }
         main.stage { padding: clamp(10px, 2vh, 20px); gap: clamp(10px, 2vh, 16px); }
         .silhouette-row { display: flex; justify-content: center; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; }
-        .silhouette-slot { position: relative; width: clamp(110px, 20vw, 160px); height: clamp(110px, 20vw, 160px); border-radius: 20px; background: rgba(255,255,255,0.15); border: 4px dashed rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s, transform 0.1s; }
-        .silhouette-slot.correct { background: rgba(23,185,120,0.3); border-color: #17b978; border-style: solid; }
-        .silhouette-slot img { width: 85%; height: 85%; object-fit: contain; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.1)); }
+        .silhouette-slot {
+            position: relative;
+            width: clamp(110px, 20vw, 160px);
+            height: clamp(110px, 20vw, 160px);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.15);
+            border: 4px dashed rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, border-color 0.2s, transform 0.1s;
+        }
+        .silhouette-slot.correct {
+            background: rgba(23,185,120,0.3);
+            border-color: #17b978;
+            border-style: solid;
+        }
+        .silhouette-slot img {
+            width: 85%;
+            height: 85%;
+            object-fit: contain;
+            /* Create silhouette effect: grayscale + high contrast */
+            filter: grayscale(1) brightness(0) contrast(10) drop-shadow(0 0 6px rgba(0,0,0,0.8));
+        }
+        .silhouette-slot.correct img {
+            filter: none; /* Show full color when matched */
+        }
         .pieces-row { display: flex; justify-content: center; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; margin-top: clamp(10px, 2vh, 20px); }
-        .piece { position: relative; width: clamp(110px, 20vw, 160px); height: clamp(110px, 20vw, 160px); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; transition: transform 0.2s, box-shadow 0.2s; z-index: 10; }
+        .piece {
+            position: relative;
+            width: clamp(110px, 20vw, 160px);
+            height: clamp(110px, 20vw, 160px);
+            border-radius: 20px;
+            background: var(--card);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            touch-action: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 10;
+        }
         .piece:active { cursor: grabbing; }
-        .piece.dragging { transform: scale(1.15); box-shadow: 0 16px 0 rgba(36,49,94,0.25); z-index: 100; opacity: 0.95; }
-        .piece img { width: 85%; height: 85%; object-fit: contain; pointer-events: none; }
+        .piece.dragging {
+            transform: scale(1.1);
+            box-shadow: 0 16px 32px rgba(36,49,94,0.3);
+            z-index: 1000;
+            opacity: 0.95;
+        }
+        .piece img { width: 85%; height: 85%; object-fit: contain; pointer-events: none; user-select: none; }
         .piece.placed { cursor: default; pointer-events: none; }
         .hint-text { text-align: center; font-size: clamp(1rem, 3vh, 1.3rem); font-weight: 700; color: rgba(255,255,255,0.9); text-shadow: 0 2px 0 rgba(36,49,94,0.25); }
     </style>
@@ -44,22 +87,41 @@
 <script src="../js/sound-toggle.js"></script>
 <script src="../js/page-init.js"></script>
 <script>
-const ITEMS = [
-    { name: "Dog", img: "../img/silhouettes/dog.png", sil: "../img/silhouettes/dog-silhouette.png" },
-    { name: "Octopus", img: "../img/silhouettes/octopus.png", sil: "../img/silhouettes/octopus-silhouette.png" },
-    { name: "Elephant", img: "../img/silhouettes/elephant.png", sil: "../img/silhouettes/elephant-silhouette.png" },
-    { name: "Bird", img: "../img/silhouettes/bird.png", sil: "../img/silhouettes/bird-silhouette.png" },
-    { name: "Airplane", img: "../img/silhouettes/aircraft.png", sil: "../img/silhouettes/aircraft-silhouette.png" },
-    { name: "Dolphin", img: "../img/silhouettes/dolphin.png", sil: "../img/silhouettes/dolphin-silhouette.png" },
-    { name: "Fish", img: "../img/silhouettes/fish.png", sil: "../img/silhouettes/fish-silhouette.png" },
-    { name: "Starfish", img: "../img/silhouettes/starfish.png", sil: "../img/silhouettes/starfish-silhouette.png" },
-    { name: "Seahorse", img: "../img/silhouettes/seahorse.png", sil: "../img/silhouettes/seahorse-silhouette.png" },
-    { name: "Sealife", img: "../img/silhouettes/sealife.png", sil: "../img/silhouettes/sealife-silhouette.png" }
+// Use the same images from the coloring game (img/ folder)
+const COLORING_ITEMS = [
+    { name: "Clownfish", src: "../img/clownfish.png" },
+    { name: "Turtle", src: "../img/turtle.png" },
+    { name: "Flower", src: "../img/flower.png" },
+    { name: "Daisy", src: "../img/daisy.png" },
+    { name: "Lion Cub", src: "../img/lion-cub.png" },
+    { name: "Bear Cub", src: "../img/bear-cub.png" },
+    { name: "Lion", src: "../img/lion.png" },
+    { name: "Fish", src: "../img/fish.png" },
+    { name: "Sun", src: "../img/sun.png" },
+    { name: "Cloud", src: "../img/cloud.png" },
+    { name: "Rainbow", src: "../img/rainbow.png" },
+    { name: "Flower 2", src: "../img/flower2.png" },
+    { name: "Butterfly", src: "../img/butterfly.png" },
+    { name: "Car", src: "../img/car.png" },
+    { name: "Rocket", src: "../img/rocket.png" },
+    { name: "Cat", src: "../img/cat.png" },
+    { name: "Tree", src: "../img/tree.png" },
+    { name: "Apple", src: "../img/apple.png" },
+    { name: "Star", src: "../img/star.png" },
+    { name: "Duck", src: "../img/duck.png" },
+    { name: "Sailboat", src: "../img/sailboat.png" },
+    { name: "Airplane", src: "../img/airplane.png" },
+    { name: "Ladybug", src: "../img/ladybug.png" },
+    { name: "Ice Cream", src: "../img/ice-cream.png" },
+    { name: "Helicopter", src: "../img/helicopter.png" },
+    { name: "Tractor", src: "../img/tractor.png" }
 ];
 
 let currentSet = [];
 let draggedPiece = null;
-let matchedCount = 0;
+let dragData = null;
+let piecesContainer = null;
+let silhouettesContainer = null;
 
 function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -70,85 +132,122 @@ function shuffle(arr) {
 }
 
 function newRound() {
-    const silhouettesEl = document.getElementById("silhouettes");
-    const piecesEl = document.getElementById("pieces");
-    silhouettesEl.innerHTML = "";
-    piecesEl.innerHTML = "";
-    matchedCount = 0;
+    silhouettesContainer = document.getElementById("silhouettes");
+    piecesContainer = document.getElementById("pieces");
+    silhouettesContainer.innerHTML = "";
+    piecesContainer.innerHTML = "";
 
-    currentSet = shuffle([...ITEMS]).slice(0, 3);
+    currentSet = shuffle([...COLORING_ITEMS]).slice(0, 4);
 
+    // Create silhouette slots
     currentSet.forEach((item, i) => {
         const slot = document.createElement("div");
         slot.className = "silhouette-slot";
         slot.dataset.name = item.name;
+        slot.dataset.index = i;
         const img = document.createElement("img");
-        img.src = item.sil;
+        img.src = item.src;
         img.alt = item.name;
+        img.loading = "";
         slot.appendChild(img);
-        silhouettesEl.appendChild(slot);
+        silhouettesContainer.appendChild(slot);
     });
 
+    // Create draggable pieces (shuffled)
     const shuffledPieces = shuffle([...currentSet]);
     shuffledPieces.forEach((item, i) => {
         const piece = document.createElement("div");
         piece.className = "piece";
         piece.dataset.name = item.name;
+        piece.dataset.index = i;
         const img = document.createElement("img");
-        img.src = item.img;
+        img.src = item.src;
         img.alt = item.name;
+        img.loading = "";
         piece.appendChild(img);
+
+        // Touch and mouse events
         piece.addEventListener("pointerdown", onDragStart);
-        piece.addEventListener("pointermove", onDragMove);
-        piece.addEventListener("pointerup", onDragEnd);
-        piece.addEventListener("pointercancel", onDragEnd);
-        piecesEl.appendChild(piece);
+        piecesContainer.appendChild(piece);
     });
 }
-
-let dragOffset = { x: 0, y: 0 };
-let startPos = { x: 0, y: 0 };
 
 function onDragStart(e) {
     const piece = e.currentTarget;
     if (piece.classList.contains("placed")) return;
+
+    // Prevent default to avoid text selection, scrolling, etc.
+    e.preventDefault();
+
     draggedPiece = piece;
     piece.classList.add("dragging");
-    piece.style.zIndex = 1000;
+
+    // Get initial position relative to viewport
     const rect = piece.getBoundingClientRect();
     const clientX = e.clientX || e.touches?.[0]?.clientX;
     const clientY = e.clientY || e.touches?.[0]?.clientY;
-    dragOffset.x = clientX - rect.left;
-    dragOffset.y = clientY - rect.top;
-    startPos.x = rect.left;
-    startPos.y = rect.top;
+
+    dragData = {
+        offsetX: clientX - rect.left,
+        offsetY: clientY - rect.top,
+        startX: rect.left,
+        startY: rect.top,
+        width: rect.width,
+        height: rect.height,
+        parent: piece.parentElement,
+        nextSibling: piece.nextElementSibling
+    };
+
+    // Move to body with fixed positioning for smooth dragging
     piece.style.position = "fixed";
-    piece.style.left = (rect.left - dragOffset.x) + "px";
-    piece.style.top = (rect.top - dragOffset.y) + "px";
-    piece.style.width = rect.width + "px";
-    piece.style.height = rect.height + "px";
+    piece.style.left = (dragData.startX - dragData.offsetX) + "px";
+    piece.style.top = (dragData.startY - dragData.offsetY) + "px";
+    piece.style.width = dragData.width + "px";
+    piece.style.height = dragData.height + "px";
     piece.style.margin = "0";
+    piece.style.zIndex = "1000";
+    piece.style.transition = "none";
     document.body.appendChild(piece);
+
+    // Set pointer capture to keep receiving events
+    try { piece.setPointerCapture(e.pointerId); } catch {}
+
     TotAudio.pick();
-    e.preventDefault();
+
+    // Add move/up listeners on document for better tracking
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragEnd);
+    document.addEventListener("pointercancel", onDragEnd);
 }
 
 function onDragMove(e) {
-    if (!draggedPiece) return;
+    if (!draggedPiece || !dragData) return;
     e.preventDefault();
+
     const clientX = e.clientX || e.touches?.[0]?.clientX;
     const clientY = e.clientY || e.touches?.[0]?.clientY;
-    draggedPiece.style.left = (clientX - dragOffset.x) + "px";
-    draggedPiece.style.top = (clientY - dragOffset.y) + "px";
+
+    draggedPiece.style.left = (clientX - dragData.offsetX) + "px";
+    draggedPiece.style.top = (clientY - dragData.offsetY) + "px";
 }
 
 function onDragEnd(e) {
-    if (!draggedPiece) return;
+    if (!draggedPiece || !dragData) return;
     e.preventDefault();
+
+    // Remove document listeners
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragEnd);
+    document.removeEventListener("pointercancel", onDragEnd);
+
+    // Release pointer capture
+    try { draggedPiece.releasePointerCapture(e.pointerId); } catch {}
+
     const pieceName = draggedPiece.dataset.name;
     const slots = document.querySelectorAll(".silhouette-slot");
     let matched = false;
 
+    // Get center point of dragged piece
     const rect = draggedPiece.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
@@ -157,7 +256,10 @@ function onDragEnd(e) {
         if (matched) return;
         if (slot.dataset.name === pieceName && !slot.classList.contains("correct")) {
             const slotRect = slot.getBoundingClientRect();
-            if (cx >= slotRect.left && cx <= slotRect.right && cy >= slotRect.top && cy <= slotRect.bottom) {
+            // Check if center of piece is within slot bounds (with some margin)
+            const margin = 20;
+            if (cx >= slotRect.left - margin && cx <= slotRect.right + margin &&
+                cy >= slotRect.top - margin && cy <= slotRect.bottom + margin) {
                 matched = true;
                 snapToSlot(draggedPiece, slot);
             }
@@ -169,25 +271,33 @@ function onDragEnd(e) {
     }
 
     draggedPiece = null;
+    dragData = null;
 }
 
 function snapToSlot(piece, slot) {
     piece.classList.remove("dragging");
     piece.classList.add("placed");
+
+    // Reset inline styles
     piece.style.position = "";
     piece.style.left = "";
     piece.style.top = "";
     piece.style.width = "";
     piece.style.height = "";
     piece.style.margin = "";
+    piece.style.zIndex = "";
+    piece.style.transition = "";
+
+    // Move piece into slot
     slot.appendChild(piece);
     slot.classList.add("correct");
-    // Replace silhouette with colored image
+
+    // Replace silhouette with colored image (remove silhouette filter)
     const img = slot.querySelector("img");
-    const item = ITEMS.find(i => i.name === piece.dataset.name);
-    if (img && item) {
-        img.src = item.img;
+    if (img) {
+        img.style.filter = "none";
     }
+
     TotAudio.match();
     confetti(1500);
     checkRoundComplete();
@@ -195,22 +305,34 @@ function snapToSlot(piece, slot) {
 
 function returnToStart(piece) {
     piece.classList.remove("dragging");
+
+    // Reset inline styles with animation
     piece.style.position = "";
     piece.style.left = "";
     piece.style.top = "";
     piece.style.width = "";
     piece.style.height = "";
     piece.style.margin = "";
-    piece.style.transition = "transform 0.3s ease, top 0.3s ease, left 0.3s ease";
+    piece.style.zIndex = "";
+    piece.style.transition = "transform 0.3s ease";
     piece.style.transform = "scale(1)";
-    setTimeout(() => { piece.style.transition = ""; }, 300);
-    document.getElementById("pieces").appendChild(piece);
+
+    // Return to pieces container
+    if (piecesContainer) {
+        piecesContainer.appendChild(piece);
+    }
+
+    // Clean up transition
+    setTimeout(() => {
+        piece.style.transition = "";
+    }, 300);
+
     TotAudio.wrong();
 }
 
 function checkRoundComplete() {
     const correctSlots = document.querySelectorAll(".silhouette-slot.correct");
-    if (correctSlots.length === 3) {
+    if (correctSlots.length === 4) {
         setTimeout(() => {
             TotAudio.win();
             confetti(2000);
@@ -219,6 +341,7 @@ function checkRoundComplete() {
     }
 }
 
+// Start the game
 newRound();
 </script>
 </body>

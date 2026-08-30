@@ -7,7 +7,6 @@
         "#ffffff"
     ];
     const BRUSH_SIZES = [
-        { label: "S", dotPx: 14, width: 16 },
         { label: "M", dotPx: 24, width: 38 },
         { label: "L", dotPx: 40, width: 66 }
     ];
@@ -42,8 +41,16 @@
     }
 
     function randomColor() {
-        return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+        // More diverse random color selection - avoid immediate repeats
+        let color;
+        do {
+            color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+        } while (rainbow && color === lastRainbowColor && PALETTE.length > 1);
+        lastRainbowColor = color;
+        return color;
     }
+
+    let lastRainbowColor = null;
 
     function hexToRgb(hex) {
         return {
@@ -210,7 +217,8 @@
         TotAudio.tap();
         const p = canvasPos(e);
         snapshot();
-        const color = rainbow ? randomColor() : currentColor;
+        // Eraser mode paints white to erase
+        const color = mode === "rubber" ? "#ffffff" : (rainbow ? randomColor() : currentColor);
         if (mode === "fill") {
             floodFill(p.x, p.y, color);
         } else if (beginStroke(p, color)) {
@@ -224,7 +232,8 @@
         if (!drawing) return;
         e.preventDefault();
         const p = canvasPos(e);
-        const color = rainbow ? randomColor() : currentColor;
+        // Eraser mode paints white to erase
+        const color = mode === "rubber" ? "#ffffff" : (rainbow ? randomColor() : currentColor);
         strokeSegment(lastPt.x, lastPt.y, p.x, p.y, brushSize / 2, color);
         lastPt = p;
     });
@@ -315,14 +324,16 @@
 
     function setMode(m, btn) {
         mode = m;
-        document.querySelectorAll("#toolFill, #toolBrush").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        canvas.style.cursor = m === "brush" ? "crosshair" : "pointer";
+        // Toggle active state for brush, fill, and rubber tools
+        document.querySelectorAll("#toolFill, #toolBrush, #rubberBtn").forEach(b => b.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+        canvas.style.cursor = "crosshair";
         TotAudio.pick();
     }
 
     document.getElementById("toolFill").addEventListener("click", e => setMode("fill", e.currentTarget));
     document.getElementById("toolBrush").addEventListener("click", e => setMode("brush", e.currentTarget));
+    document.getElementById("rubberBtn").addEventListener("click", e => setMode("rubber", e.currentTarget));
 
     document.getElementById("toolRainbow").addEventListener("click", e => {
         rainbow = !rainbow;
@@ -345,13 +356,9 @@
         loadPicture(pictureIndex);
     });
 
-    document.getElementById("resetBtn").addEventListener("click", () => {
-        TotAudio.wrong();
-        loadPicture(pictureIndex, true);
-    });
-
     document.getElementById("prevBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex - 1); });
     document.getElementById("nextBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex + 1); });
+    document.getElementById("randomBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(Math.floor(Math.random() * COLORING_PICTURES.length)); });
 
     // New game defaults to the brush tool (not the bucket).
     buildPalette();
