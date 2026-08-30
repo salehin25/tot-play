@@ -51,12 +51,17 @@
         }
 
         .side-panel {
-            width: clamp(105px, 14vw, 145px); /* 15% wider for colors panel */
+            width: clamp(90px, 11vw, 125px); /* narrow enough to stay in-tab */
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             gap: clamp(6px, 1vh, 12px);
+            /* horizontal scroll only when content overflows (device-dependent) */
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox: hide scrollbar */
         }
+        .side-panel::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
         .panel {
             flex: 1;
@@ -85,24 +90,25 @@
         .palette {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: clamp(8px, 1.5vh, 12px);
+            gap: clamp(6px, 1vh, 10px);
             justify-content: center;
             width: 100%;
         }
 
         .swatch {
-            width: 100%;
-            aspect-ratio: 1;
+            width: clamp(32px, 5.2vh, 48px);
+            height: clamp(32px, 5.2vh, 48px);
             border-radius: 50%;
-            border: 4px solid #fff;
-            box-shadow: 0 4px 0 rgba(36, 49, 94, 0.16);
+            border: 3px solid #fff;
+            box-shadow: 0 3px 0 rgba(36, 49, 94, 0.16);
             cursor: pointer;
-            outline: 4px solid transparent;
+            outline: 3px solid transparent;
             transition: transform 0.12s, outline-color 0.1s;
+            margin: 0 auto;
         }
 
         .swatch.selected {
-            transform: scale(1.2);
+            transform: scale(1.18);
             outline-color: var(--ink);
         }
 
