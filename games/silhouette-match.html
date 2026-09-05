@@ -34,11 +34,11 @@
             width: 85%;
             height: 85%;
             object-fit: contain;
-            /* Create silhouette effect: grayscale + high contrast */
-            filter: grayscale(1) brightness(0) contrast(10) drop-shadow(0 0 6px rgba(0,0,0,0.8));
+            /* Create silhouette effect from colored image */
+            filter: brightness(0) drop-shadow(0 0 4px rgba(0,0,0,0.5));
         }
         .silhouette-slot.correct img {
-            filter: none; /* Show full color when matched */
+            filter: none;
         }
         .pieces-row { display: flex; justify-content: center; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; margin-top: clamp(10px, 2vh, 20px); }
         .piece {
@@ -87,34 +87,19 @@
 <script src="../js/sound-toggle.js"></script>
 <script src="../js/page-init.js"></script>
 <script>
-// Use the same images from the coloring game (img/ folder)
-const COLORING_ITEMS = [
-    { name: "Clownfish", src: "../img/clownfish.png" },
-    { name: "Turtle", src: "../img/turtle.png" },
-    { name: "Flower", src: "../img/flower.png" },
-    { name: "Daisy", src: "../img/daisy.png" },
-    { name: "Lion Cub", src: "../img/lion-cub.png" },
-    { name: "Bear Cub", src: "../img/bear-cub.png" },
-    { name: "Lion", src: "../img/lion.png" },
-    { name: "Fish", src: "../img/fish.png" },
-    { name: "Sun", src: "../img/sun.png" },
-    { name: "Cloud", src: "../img/cloud.png" },
-    { name: "Rainbow", src: "../img/rainbow.png" },
-    { name: "Flower 2", src: "../img/flower2.png" },
-    { name: "Butterfly", src: "../img/butterfly.png" },
-    { name: "Car", src: "../img/car.png" },
-    { name: "Rocket", src: "../img/rocket.png" },
-    { name: "Cat", src: "../img/cat.png" },
-    { name: "Tree", src: "../img/tree.png" },
-    { name: "Apple", src: "../img/apple.png" },
-    { name: "Star", src: "../img/star.png" },
-    { name: "Duck", src: "../img/duck.png" },
-    { name: "Sailboat", src: "../img/sailboat.png" },
-    { name: "Airplane", src: "../img/airplane.png" },
-    { name: "Ladybug", src: "../img/ladybug.png" },
-    { name: "Ice Cream", src: "../img/ice-cream.png" },
-    { name: "Helicopter", src: "../img/helicopter.png" },
-    { name: "Tractor", src: "../img/tractor.png" }
+// Each item: colored image used for both piece (full color) and slot (silhouette via CSS filter)
+// Only using the original colored photos that came with the silhouettes folder
+const SILHOUETTE_ITEMS = [
+    { name: "Aircraft",      src: "../img/silhouettes/aircraft.png" },
+    { name: "Bird",          src: "../img/silhouettes/bird.png" },
+    { name: "Dog",           src: "../img/silhouettes/dog.png" },
+    { name: "Dolphin",       src: "../img/silhouettes/dolphin.png" },
+    { name: "Elephant",      src: "../img/silhouettes/elephant.png" },
+    { name: "Fish",          src: "../img/silhouettes/fish.png" },
+    { name: "Octopus",       src: "../img/silhouettes/octopus.png" },
+    { name: "Seahorse",      src: "../img/silhouettes/seahorse.png" },
+    { name: "Sealife",       src: "../img/silhouettes/sealife.png" },
+    { name: "Starfish",      src: "../img/silhouettes/starfish.png" }
 ];
 
 let currentSet = [];
@@ -137,9 +122,9 @@ function newRound() {
     silhouettesContainer.innerHTML = "";
     piecesContainer.innerHTML = "";
 
-    currentSet = shuffle([...COLORING_ITEMS]).slice(0, 4);
+    currentSet = shuffle([...SILHOUETTE_ITEMS]).slice(0, 4);
 
-    // Create silhouette slots
+    // Create silhouette slots (CSS filter turns colored image into black silhouette)
     currentSet.forEach((item, i) => {
         const slot = document.createElement("div");
         slot.className = "silhouette-slot";
@@ -153,7 +138,7 @@ function newRound() {
         silhouettesContainer.appendChild(slot);
     });
 
-    // Create draggable pieces (shuffled)
+    // Create draggable pieces — full-color images (shuffled)
     const shuffledPieces = shuffle([...currentSet]);
     shuffledPieces.forEach((item, i) => {
         const piece = document.createElement("div");
@@ -292,10 +277,10 @@ function snapToSlot(piece, slot) {
     slot.appendChild(piece);
     slot.classList.add("correct");
 
-    // Replace silhouette with colored image (remove silhouette filter)
-    const img = slot.querySelector("img");
-    if (img) {
-        img.style.filter = "none";
+    // Remove shadow on matched silhouette
+    const slotImg = slot.querySelector("img");
+    if (slotImg) {
+        slotImg.style.filter = "none";
     }
 
     TotAudio.match();

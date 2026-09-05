@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#fbc2eb">
+    <title>Jigsaw Puzzle</title>
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" href="../icons/favicon.png">
+    <link rel="apple-touch-icon" href="../icons/favicon.png">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        .topbar { z-index: 20; }
+        main.stage {
+            padding: clamp(10px, 2vh, 20px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(12px, 2vh, 20px);
+            position: relative;
+        }
+
+        .hint-text {
+            text-align: center;
+            font-size: clamp(1rem, 2.5vh, 1.3rem);
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 2px 0 rgba(36,49,94,0.25);
+            margin-bottom: 8px;
+        }
+
+        .puzzle-container {
+            position: relative;
+            width: clamp(280px, 60vw, 450px);
+            height: clamp(280px, 60vw, 450px);
+            margin: 0 auto;
+        }
+
+        .puzzle-grid {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 4px;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .puzzle-slot {
+            border: 3px dashed rgba(255,255,255,0.4);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.2);
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .puzzle-slot.filled {
+            border-color: rgba(23,185,120,0.5);
+            background: rgba(23,185,120,0.15);
+        }
+
+        .puzzle-piece {
+            position: absolute;
+            cursor: grab;
+            touch-action: none;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(36,49,94,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 10;
+        }
+
+        .puzzle-piece:active {
+            cursor: grabbing;
+        }
+
+        .puzzle-piece.dragging {
+            z-index: 1000;
+            transform: scale(1.05);
+            box-shadow: 0 12px 24px rgba(36,49,94,0.4);
+        }
+
+        .puzzle-piece.placed {
+            cursor: default;
+            pointer-events: none;
+            box-shadow: none;
+            z-index: 5;
+        }
+
+        .puzzle-piece.wrong {
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .puzzle-name {
+            text-align: center;
+            font-size: clamp(1.2rem, 3vh, 1.6rem);
+            font-weight: 800;
+            color: rgba(255,255,255,0.95);
+            text-shadow: 0 2px 4px rgba(36,49,94,0.3);
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .next-puzzle-btn {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom) + 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(56px, 10vh, 70px);
+            height: clamp(56px, 10vh, 70px);
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(160deg, #ffd166, #ff9f1c);
+            color: #fff;
+            font-size: clamp(28px, 5vh, 36px);
+            box-shadow: 0 8px 0 rgba(255,159,28,0.4);
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .next-puzzle-btn:active {
+            transform: translateX(-50%) translateY(4px);
+            box-shadow: 0 4px 0 rgba(255,159,28,0.4);
+        }
+    </style>
+</head>
+<body>
+<div class="bubbles" id="bubbles"></div>
+<div class="topbar">
+    <a class="home-btn" href="../index.html">🏠</a>
+    <div class="title">🧩 Jigsaw Puzzle</div>
+    <div style="display:flex;gap:10px;">
+        <button class="icon-btn" id="soundBtn">🔊</button>
+        <button class="icon-btn" id="fsBtn" aria-label="Fullscreen">⛶</button>
+    </div>
+</div>
+<main class="stage">
+    <p class="hint-text">Drag the pieces to complete the puzzle!</p>
+    <div class="puzzle-name" id="puzzleName">Loading...</div>
+    <div class="puzzle-container" id="puzzleContainer">
+        <div class="puzzle-grid" id="puzzleGrid">
+            <div class="puzzle-slot" data-position="0"></div>
+            <div class="puzzle-slot" data-position="1"></div>
+            <div class="puzzle-slot" data-position="2"></div>
+            <div class="puzzle-slot" data-position="3"></div>
+        </div>
+    </div>
+</main>
+<button class="next-puzzle-btn" id="nextPuzzleBtn" title="New Puzzle">🔄</button>
+<script src="../js/common.js"></script>
+<script src="../js/sound-toggle.js"></script>
+<script src="../js/page-init.js"></script>
+<script>
+const PUZZLE_IMAGES = [
+    { name: "Lion Cub", src: "../img/lion-cub.png" },
+    { name: "Bear Cub", src: "../img/bear-cub.png" },
+    { name: "Cat", src: "../img/cat.png" },
+    { name: "Turtle", src: "../img/turtle.png" },
+    { name: "Clownfish", src: "../img/clownfish.png" },
+    { name: "Flower", src: "../img/flower.png" },
+    { name: "Car", src: "../img/car.png" },
+    { name: "Airplane", src: "../img/airplane.png" },
+    { name: "Rocket", src: "../img/rocket.png" },
+    { name: "Sun", src: "../img/sun.png" },
+    { name: "Star", src: "../img/star.png" },
+    { name: "Rainbow", src: "../img/rainbow.png" }
+];
+
+let currentPuzzle = null;
+let currentImageIndex = 0;
+let pieces = [];
+let draggedPiece = null;
+let dragData = null;
+let placedCount = 0;
+
+function shuffle(arr) {
+    const shuffled = [...arr];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function getRandomPosition(containerWidth, containerHeight, pieceWidth, pieceHeight, gridRect, containerRect, index) {
+    // Position 2 pieces on left, 2 on right, outside the grid
+    const margin = 20;
+    const spacing = 15;
+
+    // Calculate grid edges relative to container
+    const gridLeft = gridRect.left - containerRect.left;
+    const gridRight = gridRect.right - containerRect.left;
+    const gridTop = gridRect.top - containerRect.top;
+    const gridHeight = gridRect.height;
+
+    // Vertical centering: start pieces centered relative to grid height
+    const startY = gridTop + (gridHeight / 2) - pieceHeight - spacing / 2;
+
+    if (index < 2) {
+        // Left side - 2 pieces stacked vertically
+        return {
+            x: gridLeft - pieceWidth - margin,
+            y: startY + (index * (pieceHeight + spacing))
+        };
+    } else {
+        // Right side - 2 pieces stacked vertically
+        return {
+            x: gridRight + margin,
+            y: startY + ((index - 2) * (pieceHeight + spacing))
+        };
+    }
+}
+
+function createPuzzle(imageData) {
+    const container = document.getElementById("puzzleContainer");
+    const grid = document.getElementById("puzzleGrid");
+
+    // Clear existing pieces
+    pieces.forEach(p => p.element.remove());
+    pieces = [];
+    placedCount = 0;
+
+    // Reset slots
+    document.querySelectorAll(".puzzle-slot").forEach(slot => {
+        slot.classList.remove("filled");
+    });
+
+    // Get container dimensions
+    const containerRect = container.getBoundingClientRect();
+    const gridRect = grid.getBoundingClientRect();
+
+    // Calculate piece size (half of grid cell size)
+    const pieceWidth = (gridRect.width - 12) / 2; // account for gap and padding
+    const pieceHeight = (gridRect.height - 12) / 2;
+
+    // Load image and create pieces
+    const img = new Image();
+    img.onload = () => {
+        const imgWidth = img.width;
+        const imgHeight = img.height;
+
+        // Calculate grid slot positions relative to container
+        const gridLeft = gridRect.left - containerRect.left;
+        const gridTop = gridRect.top - containerRect.top;
+
+        // Create 4 pieces (2x2 grid)
+        const positions = shuffle([0, 1, 2, 3]);
+
+        positions.forEach((correctPos, index) => {
+            const canvas = document.createElement("canvas");
+            canvas.className = "puzzle-piece";
+            canvas.width = pieceWidth;
+            canvas.height = pieceHeight;
+
+            const ctx = canvas.getContext("2d");
+
+            // Calculate which quadrant to draw
+            const col = correctPos % 2;
+            const row = Math.floor(correctPos / 2);
+
+            // Draw the appropriate quadrant of the image
+            const sx = (imgWidth / 2) * col;
+            const sy = (imgHeight / 2) * row;
+            const sw = imgWidth / 2;
+            const sh = imgHeight / 2;
+
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, pieceWidth, pieceHeight);
+
+            // Position pieces neatly to the right of the grid
+            const randomPos = getRandomPosition(
+                containerRect.width,
+                containerRect.height,
+                pieceWidth,
+                pieceHeight,
+                gridRect,
+                containerRect,
+                index
+            );
+
+            canvas.style.width = pieceWidth + "px";
+            canvas.style.height = pieceHeight + "px";
+            canvas.style.left = randomPos.x + "px";
+            canvas.style.top = randomPos.y + "px";
+
+            // Store piece data
+            const piece = {
+                element: canvas,
+                correctPosition: correctPos,
+                currentX: randomPos.x,
+                currentY: randomPos.y,
+                placed: false
+            };
+            pieces.push(piece);
+
+            // Add drag handlers
+            canvas.addEventListener("pointerdown", onDragStart);
+
+            container.appendChild(canvas);
+        });
+    };
+
+    img.src = imageData.src;
+    document.getElementById("puzzleName").textContent = imageData.name;
+}
+
+function onDragStart(e) {
+    const canvas = e.currentTarget;
+    const piece = pieces.find(p => p.element === canvas);
+
+    if (piece.placed) return;
+
+    e.preventDefault();
+
+    draggedPiece = piece;
+    piece.element.classList.add("dragging");
+
+    const rect = piece.element.getBoundingClientRect();
+    const containerRect = document.getElementById("puzzleContainer").getBoundingClientRect();
+
+    dragData = {
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+        containerLeft: containerRect.left,
+        containerTop: containerRect.top
+    };
+
+    try { piece.element.setPointerCapture(e.pointerId); } catch {}
+
+    TotAudio.tap();
+
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragEnd);
+    document.addEventListener("pointercancel", onDragEnd);
+}
+
+function onDragMove(e) {
+    if (!draggedPiece || !dragData) return;
+    e.preventDefault();
+
+    const containerRect = document.getElementById("puzzleContainer").getBoundingClientRect();
+
+    const x = e.clientX - containerRect.left - dragData.offsetX;
+    const y = e.clientY - containerRect.top - dragData.offsetY;
+
+    draggedPiece.element.style.left = x + "px";
+    draggedPiece.element.style.top = y + "px";
+    draggedPiece.currentX = x;
+    draggedPiece.currentY = y;
+}
+
+function onDragEnd(e) {
+    if (!draggedPiece || !dragData) return;
+    e.preventDefault();
+
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragEnd);
+    document.removeEventListener("pointercancel", onDragEnd);
+
+    try { draggedPiece.element.releasePointerCapture(e.pointerId); } catch {}
+
+    draggedPiece.element.classList.remove("dragging");
+
+    // Check if piece is near correct slot
+    const slots = document.querySelectorAll(".puzzle-slot");
+    const correctSlot = slots[draggedPiece.correctPosition];
+    const slotRect = correctSlot.getBoundingClientRect();
+    const containerRect = document.getElementById("puzzleContainer").getBoundingClientRect();
+
+    // Calculate piece center
+    const pieceRect = draggedPiece.element.getBoundingClientRect();
+    const pieceCenterX = pieceRect.left + pieceRect.width / 2;
+    const pieceCenterY = pieceRect.top + pieceRect.height / 2;
+
+    // Calculate slot center
+    const slotCenterX = slotRect.left + slotRect.width / 2;
+    const slotCenterY = slotRect.top + slotRect.height / 2;
+
+    // Calculate distance
+    const distance = Math.hypot(pieceCenterX - slotCenterX, pieceCenterY - slotCenterY);
+
+    // Snap threshold (larger = easier for toddlers)
+    const snapThreshold = 80;
+
+    if (distance < snapThreshold) {
+        // Correct placement - snap to slot
+        snapToSlot(draggedPiece, correctSlot, containerRect);
+    } else {
+        // Wrong placement - subtle feedback
+        draggedPiece.element.classList.add("wrong");
+        setTimeout(() => draggedPiece.element.classList.remove("wrong"), 300);
+    }
+
+    draggedPiece = null;
+    dragData = null;
+}
+
+function snapToSlot(piece, slot, containerRect) {
+    const slotRect = slot.getBoundingClientRect();
+
+    // Position piece exactly in the slot
+    const x = slotRect.left - containerRect.left;
+    const y = slotRect.top - containerRect.top;
+
+    piece.element.style.left = x + "px";
+    piece.element.style.top = y + "px";
+    piece.element.classList.add("placed");
+    piece.placed = true;
+
+    slot.classList.add("filled");
+
+    TotAudio.match();
+    placedCount++;
+
+    // Check if puzzle is complete
+    if (placedCount === 4) {
+        setTimeout(() => {
+            TotAudio.win();
+            confetti(2000);
+            bigMessage("Amazing! 🎉");
+
+            // Load next puzzle after celebration
+            setTimeout(() => {
+                currentImageIndex = (currentImageIndex + 1) % PUZZLE_IMAGES.length;
+                createPuzzle(PUZZLE_IMAGES[currentImageIndex]);
+            }, 2000);
+        }, 300);
+    }
+}
+
+// Initialize with random puzzle
+currentImageIndex = Math.floor(Math.random() * PUZZLE_IMAGES.length);
+createPuzzle(PUZZLE_IMAGES[currentImageIndex]);
+
+// Next puzzle button
+document.getElementById("nextPuzzleBtn").addEventListener("click", () => {
+    TotAudio.tap();
+    // Pick a random puzzle (different from current one)
+    let newIndex;
+    do {
+        newIndex = Math.floor(Math.random() * PUZZLE_IMAGES.length);
+    } while (newIndex === currentImageIndex && PUZZLE_IMAGES.length > 1);
+
+    currentImageIndex = newIndex;
+    createPuzzle(PUZZLE_IMAGES[currentImageIndex]);
+});
+</script>
+</body>
+</html>

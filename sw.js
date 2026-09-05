@@ -1,4 +1,4 @@
-const CACHE = "tot-play-v11";
+const CACHE = "tot-play-v12";
 const ASSETS = [
     "./",
     "index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
     "games/silhouette-match.html",
     "games/pop-count.html",
     "games/peekaboo.html",
+    "games/jigsaw-puzzle.html",
     "css/shared.css",
     "js/common.js",
     "js/sound-toggle.js",
