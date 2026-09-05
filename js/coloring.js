@@ -22,8 +22,8 @@
     canvas.height = H;
 
     let currentColor = PALETTE[0];
-    let mode = "brush";            // default: brush
-    let rainbow = false;
+    let mode = "fill";            // default: fill (bucket)
+    let rainbow = true;          // default: rainbow mode on
     let brushSize = BRUSH_SIZES[1].width;
     let pictureIndex = 0;
     let drawing = false;
@@ -360,9 +360,78 @@
     document.getElementById("nextBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(pictureIndex + 1); });
     document.getElementById("randomBtn").addEventListener("click", () => { TotAudio.pick(); loadPicture(Math.floor(Math.random() * COLORING_PICTURES.length)); });
 
-    // New game defaults to the brush tool (not the bucket).
+    // Defaults: fill (bucket) tool active and rainbow mode on.
     buildPalette();
     buildSizes();
-    setMode("brush", document.getElementById("toolBrush"));
+    setMode("fill", document.getElementById("toolFill"));
+    document.getElementById("toolRainbow").classList.add("active");
+
+    // ---- picture selector overlay ----------------------------------------
+
+    function closePictureGrid(grid) {
+        if (grid && grid.parentNode) grid.parentNode.removeChild(grid);
+    }
+
+    function buildPictureGrid() {
+        const grid = document.createElement("div");
+        grid.id = "picGrid";
+        grid.style.cssText = [
+            "position:fixed", "inset:0", "z-index:1000",
+            "background:rgba(0,0,0,0.6)", "display:grid",
+            "place-items:center", "padding:clamp(10px,4vw,40px)",
+            "box-sizing:border-box", "touch-action:none", "overflow:visible"
+          ].join(";");
+
+        // Close when clicking outside the panel
+        grid.addEventListener("click", e => {
+            if (e.target === grid) {
+                closePictureGrid(grid);
+            }
+        });
+
+        const panel = document.createElement("div");
+        panel.style.cssText = [
+            "background:#fff", "border-radius:clamp(14px,3vw,24px)",
+            "padding:clamp(12px,3vw,24px)",
+            "width:min(600px, calc(100vw - clamp(20px,8vw,80px)))",
+            "max-height:calc(100vh - clamp(40px,10vh,100px))",
+            "overflow:hidden", "display:flex", "flex-direction:column"
+          ].join(";");
+
+        const scroll = document.createElement("div");
+        scroll.style.cssText = [
+            "overflow:auto", "display:grid",
+            "grid-template-columns:repeat(auto-fill,minmax(clamp(70px,12vw,100px),1fr))",
+            "gap:clamp(8px,2vw,14px)"
+          ].join(";");
+
+        COLORING_PICTURES.forEach((pic, idx) => {
+            const btn = document.createElement("button");
+            btn.style.cssText = [
+                "border:none", "border-radius:10px", "padding:clamp(4px,1vw,8px)",
+                "cursor:pointer", "background:#fff",
+                "box-shadow:0 3px 0 rgba(36,49,94,0.14)",
+                "display:flex", "flex-direction:column", "align-items:center", "gap:clamp(3px,0.8vw,6px)"
+              ].join(";");
+            btn.innerHTML = '<img src="' + pic.src + '" alt="' + pic.name + '" style="width:clamp(50px,10vw,70px);height:clamp(50px,10vw,70px);object-fit:contain;border-radius:8px;background:#f0f0f0;">' +
+                            '<span style="font-size:clamp(0.6rem,1.8vw,0.8rem);font-weight:700;color:var(--ink);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%;text-align:center;">' + pic.name + '</span>';
+            btn.addEventListener("click", () => {
+                TotAudio.pick();
+                closePictureGrid(grid);
+                loadPicture(idx);
+            });
+            scroll.appendChild(btn);
+        });
+
+        panel.appendChild(scroll);
+        grid.appendChild(panel);
+        document.body.appendChild(grid);
+    }
+
+    document.getElementById("selectPicture").addEventListener("click", () => {
+        TotAudio.tap();
+        buildPictureGrid();
+    });
+
     loadPicture(0);
 })();
