@@ -41,16 +41,27 @@
     }
 
     function randomColor() {
-        // More diverse random color selection - avoid immediate repeats
-        let color;
-        do {
-            color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
-        } while (rainbow && color === lastRainbowColor && PALETTE.length > 1);
-        lastRainbowColor = color;
-        return color;
+        // Generate colors evenly spaced across the hue wheel so each click
+        // is visually far from the last. Hue jumps by ~60-90°, and saturation
+        // and lightness vary only slightly so colors feel related but distinct.
+        hue = (hue + 60 + Math.floor(Math.random() * 31)) % 360;
+        const s = 60 + Math.floor(Math.random() * 25);   // 60-85%
+        const l = 48 + Math.floor(Math.random() * 18);   // 48-66%
+        return hslToHex(hue, s, l);
     }
 
-    let lastRainbowColor = null;
+    let hue = Math.floor(Math.random() * 360);
+
+    function hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const k = n => (n + h / 30) % 12;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => {
+            const v = l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+            return Math.round(255 * v).toString(16).padStart(2, "0");
+        };
+        return "#" + f(0) + f(8) + f(4);
+    }
 
     function hexToRgb(hex) {
         return {
