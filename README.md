@@ -23,7 +23,7 @@ Open `index.html` in a browser (or host the repository on GitHub Pages) to try t
 - Coloring uses a canvas-based paint implementation (`js/coloring.js`) with picture metadata in `js/coloring-data.js` and image assets in `img/`.
 - A service worker (`sw.js`) caches core assets for offline access and the manifest (`manifest.webmanifest`) enables PWA install behavior.
 
-## Top-level structure
+## Top-leve  l structure
 ```text
 index.html           — App shell / game menu
 manifest.webmanifest — Web manifest (PWA)
