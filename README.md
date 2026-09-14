@@ -8,7 +8,7 @@ Open `index.html` in a browser (or host the repository on GitHub Pages) to try t
 ## Features
 - Touch-first UI and large tappable controls optimized for small children.
 - Four built-in games:
-  - Coloring: a simple paint/fill canvas with undo, brush sizes, and multiple pictures.
+  - Coloring: a simple paint/fill canvas with undo, brush sizes, and   multiple pictures.
   - ABC Match: match letters to their pair.
   - Number Match: match numerals with dot groups (counting dots).
   - Shape Match: match shapes using emoji icons.
