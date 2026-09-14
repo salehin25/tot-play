@@ -1,6 +1,6 @@
 # Tot Play
 
-Fun, touch-friendly mini-games for toddlers: Colors, ABC Match, Number Match and Shape Match. Designed as a small static Progressive Web App (PWA) you can open on any device, install to the home screen, or host with GitHub Pages / any static host.
+Fun, touch-friendly mini-games for toddlers: Colors, ABC   Match, Number Match and Shape Match. Designed as a small static Progressive Web App (PWA) you can open on any device, install to the home screen, or host with GitHub Pages / any static host.
 
 ## Demo
 Open `index.html` in a browser (or host the repository on GitHub Pages) to try the games.
